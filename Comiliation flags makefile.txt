@@ -1,0 +1,14 @@
+Compilation flags:
+
+CFLAGS      := -O3 -g -DINTEL -fomit-frame-pointer -march=x86-64 -fgnu-tm -mrtm
+
+				fomit-frame-pointer : Optimization 
+				march : target machine
+				fgnu-tm : transaction related.
+				mrtm : intrinsic transaction code.
+				
+LDFLAGS     := -lpthread -fgnu-tm -litm 
+
+	-lpthread 	:  threads?
+	-fgnu-tm  	:	transactions
+	-litm		: 	transactions
