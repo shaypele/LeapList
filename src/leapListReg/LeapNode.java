@@ -19,7 +19,11 @@ public class LeapNode {
 	}
 	
 	public LeapNode (){
-		// TODO: init new trie  
+	}
+	
+	public LeapNode UnMark() {
+		// TODO see how to handle with transactions.
+		return this;
 	}
 
 }
