@@ -1,10 +1,10 @@
 package utils;
 
 public class LeapSet {
-	public int key;
+	public long key;
 	public Object value;
 	
-	public LeapSet (int key, Object value){
+	public LeapSet (long key, Object value){
 		this.key = key;
 		this.value = value;
 	}

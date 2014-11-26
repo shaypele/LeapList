@@ -1,7 +1,7 @@
 package utils;
 
 public class TrieKey {
-	long key;
+	short key;
 	
 	public TrieKey (short key){
 		this.key = key;

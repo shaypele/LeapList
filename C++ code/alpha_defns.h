@@ -75,7 +75,7 @@
 
 #include <sys/time.h>
 typedef unsigned long tick_t;
-#define RDTICK() asm("rpcc %v0")
+#define RDTICK() asm("rpcc %v0") // read processor cycle count
 
 
 /*

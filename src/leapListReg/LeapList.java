@@ -5,24 +5,24 @@ import java.util.Random;
 import utils.*;
 
 public class LeapList {
-	final static int MAX_LEVEL = 10;
+	final static byte MAX_LEVEL = 10;
 	final static int MAX_ROW = 4;
 	final static int NODE_SIZE = 300;
 	
 	LeapNode head;
 
 	public LeapList () {
-		head = new LeapNode (true, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, 0, MAX_LEVEL, null);
-		LeapNode tail = new LeapNode (true, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, 0, MAX_LEVEL, null);
+		head = new LeapNode (true, Long.MIN_VALUE, Long.MIN_VALUE, 0, MAX_LEVEL, null);
+		LeapNode tail = new LeapNode (true, Long.MAX_VALUE, Long.MAX_VALUE, 0, MAX_LEVEL, null);
 		for (int i = 0; i < MAX_LEVEL; i++){
 			head.next[i] = tail;
 		}
 	}
 	
- 	static int getLevel(){
+ 	static byte getLevel(){
 		Random rand = new Random();
 		long r = rand.nextLong();
-		int l = 1;
+		byte l = 1;
 		r = (r >> 4) & ((1 << (MAX_LEVEL - 1)) -1);
 		while ((r & 1)  > 0){
 			l++;
@@ -31,7 +31,7 @@ public class LeapList {
 		return l;
 	}
 	
-	static LeapNode searchPredecessor (LeapList l, int key, LeapNode[] pa, LeapNode[] na){
+	static LeapNode searchPredecessor (LeapList l, long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next;
 		
@@ -52,14 +52,14 @@ public class LeapList {
 		return na[0];
 	}
 	
-	static Object lookUp (LeapList l, int key){
+	static Object lookUp (LeapList l, long key){
 		LeapNode [] na = new LeapNode[MAX_LEVEL];
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		LeapNode ret = searchPredecessor(l, key, pa, na);
 		return ret.data[ret.trie.trieFindVal(key)].value;
 	}
 
-	static void leapListUpdate (LeapList [] ll, int [] keys, Object [] values, int size){
+	static void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
 		LeapNode[][] pa = new LeapNode[MAX_ROW][MAX_LEVEL];
 		LeapNode[][] na = new LeapNode[MAX_ROW][MAX_LEVEL];
 		LeapNode[] n = new LeapNode[MAX_ROW];
@@ -79,7 +79,7 @@ public class LeapList {
 		
 	}
 	
-	static void updateSetup (LeapList[] ll, int [] keys, Object [] values, int size, LeapNode[][] pa, LeapNode[][] na, 
+	static void updateSetup (LeapList[] ll, long [] keys, Object [] values, int size, LeapNode[][] pa, LeapNode[][] na, 
 										LeapNode[] n, LeapNode [][] newNode, int [] maxHeight, boolean[] split, boolean[] changed){
 		
 		for (int i = 0; i < size; i ++){
@@ -100,7 +100,7 @@ public class LeapList {
 		}
 	}
 	
-	static boolean insert (LeapNode[] newNode, LeapNode n, int key, Object val, boolean split){
+	static boolean insert (LeapNode[] newNode, LeapNode n, long key, Object val, boolean split){
 		boolean changed = false;
 		int m = 0;
 		int i = 0;

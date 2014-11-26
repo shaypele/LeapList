@@ -10,13 +10,13 @@ public class Trie {
 	private TrieMetadata meta;
 	private TrieVal head;
 	
-	public Trie (int key, short value){
+	public Trie (long key, short value){
 		
 		TrieVal val = new TrieVal(16, (short)0);
 		head = val;
 		
-		this.meta = new TrieMetadata(TRIE_KEY_MAX_DIGITS - 1, (key>>4));
-		head.child[(key & 16)].val = (short) (value  + 1);
+		this.meta = new TrieMetadata((byte) (TRIE_KEY_MAX_DIGITS - 1), (key>>4));
+		head.child[(int) (key & 16)].val = (short) (value  + 1);
 		
 	}
 	
@@ -31,7 +31,7 @@ public class Trie {
 			this.head = new TrieVal(256, (short)0);
 			
 			for (int i = 0; i < size; i++){
-				int index = (data[i].key & LAST_2_DIGITS_MASK);
+				int index = (int) (data[i].key & LAST_2_DIGITS_MASK);
 				this.head.child[index].val = (short)counter;
 				counter ++;
 			}
@@ -41,7 +41,7 @@ public class Trie {
 			this.head = new TrieVal (16, (short)0);
 			
 			for (int i = 0;i < size; i++){
-				int index = (data[i].key & LAST_DIGIT_MASK);
+				int index = (int) (data[i].key & LAST_DIGIT_MASK);
 				this.head.child[index].val = counter;
 				counter ++;
 			}
@@ -59,13 +59,13 @@ public class Trie {
 				int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 				int index;
 				TrieVal curr = this.head;
-				int currKey = data[i].key;
+				long currKey = data[i].key;
 				
 				if (shiftDigits % 2 == 0){
-					index = (currKey >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK;
+					index = (int) ((currKey >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK);
 				}
 				else{
-					index = (currKey >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK;
+					index = (int) ((currKey >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK);
 					shiftDigits++;
 				}
 				
@@ -78,7 +78,7 @@ public class Trie {
 					
 					curr = curr.child[index];
 					shiftDigits = shiftDigits -2;
-					index = (currKey >> ((shiftDigits -2) <<2)) & LAST_2_DIGITS_MASK;
+					index = (int) ((currKey >> ((shiftDigits -2) <<2)) & LAST_2_DIGITS_MASK);
 				}
 				
 				curr.child[index].val = counter;
@@ -88,18 +88,19 @@ public class Trie {
 		
 	}
 	
-	void computeTriePrefix (int low, int high){
+
+	void computeTriePrefix (long low, long high){
 		
 		for (int i = 1; i <= TRIE_KEY_MAX_DIGITS; i++){	
 			if((low >> (i << 2)) == (high >> (i << 2))){
-				this.meta.prefix_length = TRIE_KEY_MAX_DIGITS - i;
+				this.meta.prefix_length = (byte) (TRIE_KEY_MAX_DIGITS - i);
 				this.meta.prefix = (low >> (i << 2));
 				return;
 			}
 		}
 	}
 	
-	public short trieFindVal (int key){
+	public short trieFindVal (long key){
 		int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 		int index;
 		TrieVal curr = head;
@@ -111,10 +112,10 @@ public class Trie {
 			return -1;
 		
 		if (shiftDigits % 2 == 0){
-			index = (key >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK;
+			index = (int) ((key >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK);
 		}
 		else{
-			index = (key >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK;
+			index = (int) ((key >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK);
 			shiftDigits ++;
 		}
 		
@@ -124,7 +125,7 @@ public class Trie {
 			
 			curr = curr.child[index];
 			shiftDigits = shiftDigits - 2;
-			index = (key >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK;
+			index = (int) ((key >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK);
 		}
 		
 		if (curr.child[index].val == 0)
@@ -133,7 +134,7 @@ public class Trie {
 		return (short) (curr.child[index].val - 1);
 	}
 
-	private int recTrieNodesNum(TrieVal curr, int curLevel){
+	private int recTrieNodesNum(TrieVal curr, byte curLevel){
 		if (curLevel == 7){
 			return 1;
 		}
@@ -142,7 +143,7 @@ public class Trie {
 			int sum = 0;
 			for (int i = 0; i < 256; i++){
 				if (real.child[i].child != null)
-					sum = sum + recTrieNodesNum(real.child[i], curLevel + 1);
+					sum = sum + recTrieNodesNum(real.child[i], (byte) (curLevel + 1));
 			}
 			sum = sum + 1;
 			return sum;
@@ -161,11 +162,10 @@ public class Trie {
 		int sum = 0; 
 		for (int i = 0; i < element_sum; i ++){
 			if (realHead.child[i].child != null)
-				sum = sum + recTrieNodesNum(realHead.child[i], (meta.prefix_length / 2) + 1);
+				sum = sum + recTrieNodesNum(realHead.child[i], (byte) ((meta.prefix_length / 2) + 1));
 		}
 		sum  = sum + 1;
 		return sum;
 	}
 
-	//public void printTrie(){} TODO
 }
