@@ -1,5 +1,6 @@
 package leapListReg;
 
+
 import java.util.Random;
 
 import utils.Trie;
@@ -9,7 +10,12 @@ public class LeapListDB {
 	LeapList[] LeapLists = new LeapList[MAX_ROW];
 	
 	public LeapListDB () {
+		for (int i=0; i < MAX_ROW ; i++)
+		{
+			LeapLists[i] = new LeapList();
+		}
 	}
+	
 	
 	public LeapList  GetListByIndex (int index){
 		if (index < MAX_ROW){
