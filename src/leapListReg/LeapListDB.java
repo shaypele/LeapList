@@ -43,6 +43,7 @@ public class LeapListDB {
 		for(int i = 0; i < size; i++){
 			newNode[i][0] = new LeapNode();
 			newNode[i][1] = new LeapNode();
+			keys[i] += 2 ; // avoid sentinel; 
 		}
 		
 		updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed);
@@ -113,28 +114,32 @@ public class LeapListDB {
 		else{
 			for (j = 0; j < n.count; i++, j++){
 				if (n.data[j].key == key){     //there is an int overwrite in the prof. cod. not sure what it does.
+					newNode[m].data[i].key = n.data[j].key;
 					newNode[m].data[i].value = val;
 					changed = true;
 				}
-				
-				if ((!changed) && (n.data[j].key > key)){
-					newNode[m].data[i].key = key;
-					newNode[m].data[i].value = val;
-					newNode[m].count++;
-					changed = true;
+				else
+				{
 					
-					if ((m != 1) && split && (newNode[0].count == (i+1))){
-						newNode[m].high = newNode[m+1].low = newNode[m].data[i].key;
-						i = -1;
-						m = m + 1;
+					if ((!changed) && (n.data[j].key > key)){
+						newNode[m].data[i].key = key;
+						newNode[m].data[i].value = val;
+						newNode[m].count++;
+						changed = true;
+						
+						// Count = i+1 . if we put the new key in the last place of the node (we know that it's the last place because of the split)
+						if ((m != 1) && split && (newNode[0].count == (i+1))){
+							newNode[m].high = newNode[m+1].low = newNode[m].data[i].key;
+							i = -1;
+							m = m + 1;
+						}
+						
+						i++;
 					}
 					
-					i++;
+					newNode[m].data[i].key = n.data[j].key;
+					newNode[m].data[i].value = n.data[j].value;
 				}
-				
-				newNode[m].data[i].key = n.data[j].key;
-				newNode[m].data[i].value = n.data[j].value;
-				
 				if ((m != 1) && split && (newNode[0].count == (i+1))){
 					newNode[m].high = newNode[m+1].low = newNode[m].data[i].key;
 					i = -1;

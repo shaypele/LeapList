@@ -8,7 +8,7 @@ import utils.LeapSet;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 300;
+	static final int NODE_SIZE = 200;
 	
 	LeapNode head;
 
@@ -20,11 +20,14 @@ public class LeapList {
 		}
 	}
 	
+	public LeapNode GetHeadNode(){
+		return this.head;
+	}
  	
 	
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
-		LeapNode x, x_next;
+		LeapNode x, x_next = null;
 		
 		x = this.head;
 		
@@ -42,28 +45,32 @@ public class LeapList {
 				na[i] = x_next;
 		}
 		
-		return na[0];
+		return x_next;
 	}
 	
-	Object lookUp (long key){
+	public Object lookUp (long key){
 		LeapNode [] na = new LeapNode[MAX_LEVEL];
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
+		key+= 2; // avoid sentinel 
 		LeapNode ret = searchPredecessor( key, pa, na);
 		return ret.data[ret.trie.trieFindVal(key)].value;
 	}
 
-	Object[] RangeQuery (long low, long high){
+	public Object[] RangeQuery (long low, long high){
 	    LeapNode n;
 	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
 	    low = low+2; // Avoid sentinel
-	    high = high+2;
+	    high = high+2; // Avoid sentinel
 	
 	    n = searchPredecessor( low, null, null);
 	    
-	    do
+	    while (high>n.high)
 	    {
 	    	n = addValuesToSet(low, high, n, rangeSet);
-	    }while (high>n.high);
+	    	if (n.next[0] != null){
+	    		n = n.next[0].UnMark();
+	    	}
+	    }
 	    addValuesToSet(low, high, n, rangeSet);
 	   
 	    return rangeSet.toArray();
@@ -80,7 +87,6 @@ public class LeapList {
 				rangeSet.add(n.data[i].value);
 			}
 		}
-		n = n.next[0].UnMark();
 		return n;
 	}
 

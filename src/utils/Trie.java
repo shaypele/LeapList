@@ -16,7 +16,7 @@ public class Trie {
 		head = val;
 		
 		this.meta = new TrieMetadata((byte) (TRIE_KEY_MAX_DIGITS - 1), (key>>4));
-		head.child[(int) (key & 16)].val = (short) (value  + 1);
+		head.child[(int) (key & LAST_DIGIT_MASK)].val = (short) (value  + 1);
 		
 	}
 	
