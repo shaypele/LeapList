@@ -26,17 +26,17 @@ public class LeapListDB {
 	}
 	
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
-		LeapNode[][] pa = new LeapNode[MAX_ROW][LeapList.MAX_LEVEL];
-		LeapNode[][] na = new LeapNode[MAX_ROW][LeapList.MAX_LEVEL];
-		LeapNode[] n = new LeapNode[MAX_ROW];
-		LeapNode [][] newNode = new LeapNode[MAX_ROW][2];
-		int [] maxHeight = new int[MAX_ROW];
-		boolean [] split = new boolean [MAX_ROW];
-		boolean [] changed = new boolean [MAX_ROW];
+		LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
+		LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
+		LeapNode[] n = new LeapNode[size];
+		LeapNode [][] newNode = new LeapNode[size][2];
+		int [] maxHeight = new int[size];
+		boolean [] split = new boolean [size];
+		boolean [] changed = new boolean [size];
 		
-		for(int i = 0; i < MAX_ROW; i++){
+		for(int i = 0; i < size; i++){
 			newNode[i][0] = new LeapNode();
-			newNode[i][2] = new LeapNode();
+			newNode[i][1] = new LeapNode();
 		}
 		
 		updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed);

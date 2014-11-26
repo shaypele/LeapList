@@ -1,16 +1,15 @@
 package utils;
 
+import leapListReg.LeapList;
+import leapListReg.LeapListDB;
+
 public class Test {
 
 	public static void main(String[] args) {
-		LeapSet key [] = new LeapSet[3];
-		key [0] = new LeapSet(6,66);
-		key [1] = new LeapSet(7,77);
-		key [2] = new LeapSet(9,88);
+		LeapListDB db =	new LeapListDB();
+		LeapList list0 = db.GetListByIndex(0);
+		db.leapListUpdate(new LeapList[] {list0,list0,list0,list0,list0}, new long[]{1, 4,7,9,20}, new Object[]{"First", "2nd","3rd","4th","5th"},5);
 		
-		Trie tr = new Trie(key, 3);
-		
-		System.out.println (tr.trieFindVal(9));
 	}
 
 }
