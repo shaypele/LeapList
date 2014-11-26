@@ -33,7 +33,7 @@ public class Test {
 		}
 		
 		System.out.println(" Remove ");
-		db.leapListRemove(new LeapList[] {list0}, new long[]{987, },1);
+		db.leapListRemove(new LeapList[] {list0}, new long[]{90, },1);
 		
 		head = list0.GetHeadNode();
 		do 

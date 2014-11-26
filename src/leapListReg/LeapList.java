@@ -8,7 +8,7 @@ import utils.LeapSet;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 200;
+	static final int NODE_SIZE = 2;
 	
 	LeapNode head;
 

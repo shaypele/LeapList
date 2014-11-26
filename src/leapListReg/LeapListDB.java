@@ -266,10 +266,10 @@ public class LeapListDB {
 		            if (merge[j])
 		            {   
 		                for (; i < oldNode[j][1].level; i++)
-		                    n[j].next[i] = oldNode[j][1].next[i].UnMark();
+		                    n[j].next[i] = oldNode[j][1].next[i];//.UnMark();
 		            }
-			            for (; i < oldNode[j][0].level; i++)
-			                n[j].next[i] = oldNode[j][0].next[i].UnMark();
+		            for (; i < oldNode[j][0].level; i++)
+		                n[j].next[i] = oldNode[j][0].next[i];//.UnMark();
 		            
 		            
 		            for(i = 0; i < n[j].level; i++)
@@ -323,10 +323,10 @@ public class LeapListDB {
 	            continue;
 	        }
 	        total[j] = oldNode[j][0].count;
-	        do
-	        {
+	       // do
+	       // {
 	            oldNode[j][1] = oldNode[j][0].next[0];
-	        } while ((oldNode[j][0].live) /*&& (is_marked_ref(oldNode[j][1]))*/);
+	        //} while ((oldNode[j][0].live) /*&& (is_marked_ref(oldNode[j][1]))*/);
 	       
 	        if(oldNode[j][1] != null)
 	        {
