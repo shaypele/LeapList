@@ -331,7 +331,7 @@ public class LeapListDB {
 	        if(oldNode[j][1] != null)
 	        {
 	            total[j] = total[j] + oldNode[j][1].count;
-	            if(total[j] <= LeapList.NODE_SIZE)
+	            if(total[j] - 1<= LeapList.NODE_SIZE)
 	            {
 	                merge[j] = true; 
 	            }

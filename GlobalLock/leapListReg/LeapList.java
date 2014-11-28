@@ -34,7 +34,7 @@ public class LeapList {
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
 				x_next = x.next[i];
-				if (x_next.high > key)
+				if (x_next.high >= key)
 					break;
 				else
 					x = x_next;
@@ -49,11 +49,18 @@ public class LeapList {
 	}
 	
 	public Object lookUp (long key){
+		int index ;
+		Object retVal = null;
 		LeapNode [] na = new LeapNode[MAX_LEVEL];
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
 		LeapNode ret = searchPredecessor( key, pa, na);
-		return ret.data[ret.trie.trieFindVal(key)].value;
+		index = ret.trie.trieFindVal(key);
+		if (index != -1)
+		{
+			retVal =  ret.data[index].value;
+		}
+		return retVal;
 	}
 
 	public Object[] RangeQuery (long low, long high){

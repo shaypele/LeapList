@@ -10,7 +10,7 @@ public class Trie {
 	private TrieMetadata meta;
 	private TrieVal head;
 	
-	public Trie (long key, short value){
+	private void createOneNodeTrie(long key, short value){
 		
 		TrieVal val = new TrieVal(16, (short)0);
 		head = val;
@@ -18,10 +18,20 @@ public class Trie {
 		this.meta = new TrieMetadata((byte) (TRIE_KEY_MAX_DIGITS - 1), (key>>4));
 		head.child[(int) (key & LAST_DIGIT_MASK)].val = (short) (value  + 1);
 		
+	} 
+	
+	public Trie (long key, short value){
+		
+		createOneNodeTrie( key,  value);
 	}
 	
 	public Trie (LeapSet[] data ,int size){
 		short counter = 1;
+		
+		if ( size == 0 ){
+			createOneNodeTrie( 0, (short)  0);
+			return;
+		}
 		
 		this.meta = new TrieMetadata();
 		
