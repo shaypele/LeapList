@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_cop_multi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_cop_multi_htm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_rwlock_multi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_stm_multi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_tm_lock_multi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leap_tm_lock_multi_adi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ptst.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="replay.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="set_harness.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trie.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="alpha_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ia64_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="intel_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="leap_stm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mips_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="portable_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ppc_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ptst.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rwlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sparc_defns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trie.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

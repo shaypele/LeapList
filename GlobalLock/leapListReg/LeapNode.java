@@ -22,6 +22,13 @@ public class LeapNode {
 		this.level = level;
 		
 		if (sortedPairs != null)
+			this.low=low;
+			this.high=high;
+			this.count =count;
+			this.level=level;
+			this.data= sortedPairs;
+			
+			if(sortedPairs!=null)
 			trie = new Trie(sortedPairs, sortedPairs.length);
 	}
 	
