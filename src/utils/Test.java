@@ -2,14 +2,51 @@ package utils;
 
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
+import leapListReg.LeapNode;
 
 public class Test {
 
 	public static void main(String[] args) {
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
-		db.leapListUpdate(new LeapList[] {list0,list0,list0,list0,list0}, new long[]{1, 4,7,9,20}, new Object[]{"First", "2nd","3rd","4th","5th"},5);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{3, }, new Object[]{"1st"},1);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{5, }, new Object[]{"3rd"},1);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{90, }, new Object[]{"5th"},1);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{7}, new Object[]{"4th"},1);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{4, }, new Object[]{"2nd"},1);
+		db.leapListUpdate(new LeapList[] {list0}, new long[]{7, }, new Object[]{"I'm am 7"},1);
+		LeapNode head = list0.GetHeadNode();
+		do 
+		{
+			System.out.println("new node \n");
+			for (int i = 0 ; i < head.count ; i ++){
+				System.out.println(" Item Is " + head.data[i].value + "\n"); 
+			}
+			head = head.next[0];
+		}
+		while (head!= null);
 		
+		System.out.println(" Rangen ");
+		Object[] arr =  list0.RangeQuery(2, 80);
+		for (Object obj : arr){
+			System.out.println(" Item Is " + obj.toString() + "\n");
+		}
+		
+		System.out.println(" Remove ");
+		db.leapListRemove(new LeapList[] {list0}, new long[]{90, },1);
+		
+		head = list0.GetHeadNode();
+		do 
+		{
+			System.out.println("new node \n");
+			for (int i = 0 ; i < head.count ; i ++){
+				System.out.println(" Item Is " + head.data[i].value + "\n"); 
+			}
+			head = head.next[0];
+		}
+		while (head!= null);
+		
+		System.out.println("XXXXXX");
 	}
 
 }
