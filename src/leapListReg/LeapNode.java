@@ -15,6 +15,13 @@ public class LeapNode {
 	
 	public LeapNode (boolean live, long low, long high, int count, byte level, LeapSet[] sortedPairs){
 		if (sortedPairs != null)
+			this.low=low;
+			this.high=high;
+			this.count =count;
+			this.level=level;
+			this.data= sortedPairs;
+			
+			if(sortedPairs!=null)
 			trie = new Trie(sortedPairs, sortedPairs.length);
 	}
 	
