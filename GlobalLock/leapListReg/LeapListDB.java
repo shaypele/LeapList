@@ -5,9 +5,15 @@ import java.util.Random;
 
 import utils.Trie;
 
+import java.util.concurrent.locks.ReentrantLock;
+
+
 public class LeapListDB {
 	static final  int MAX_ROW = 4;
 	LeapList[] LeapLists = new LeapList[MAX_ROW];
+	
+	private final ReentrantLock dbLock = new ReentrantLock();
+
 	
 	public LeapListDB () {
 		for (int i=0; i < MAX_ROW ; i++)
@@ -28,27 +34,37 @@ public class LeapListDB {
 	
 
 	public Object lookUp (LeapList l, long key){
-		return l.lookUp(key);
+		dbLock.lock();
+		try {
+			return l.lookUp(key);
+		} finally {
+			dbLock.unlock();
+		}
 	}
 	
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
-		LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
-		LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-		LeapNode[] n = new LeapNode[size];
-		LeapNode [][] newNode = new LeapNode[size][2];
-		int [] maxHeight = new int[size];
-		boolean [] split = new boolean [size];
-		boolean [] changed = new boolean [size];
-		
-		for(int i = 0; i < size; i++){
-			newNode[i][0] = new LeapNode();
-			newNode[i][1] = new LeapNode();
-			keys[i] += 2 ; // avoid sentinel; 
+		dbLock.lock();
+		try {
+			LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
+			LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
+			LeapNode[] n = new LeapNode[size];
+			LeapNode [][] newNode = new LeapNode[size][2];
+			int [] maxHeight = new int[size];
+			boolean [] split = new boolean [size];
+			boolean [] changed = new boolean [size];
+			
+			for(int i = 0; i < size; i++){
+				newNode[i][0] = new LeapNode();
+				newNode[i][1] = new LeapNode();
+				keys[i] += 2 ; // avoid sentinel; 
+			}
+			
+			updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed);
+			updateLT (size, pa, na, n, newNode, maxHeight, changed);
+			updateRelease (size, pa, na, n, newNode, split, changed);
+		} finally {
+			dbLock.unlock();
 		}
-		
-		updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed);
-		updateLT (size, pa, na, n, newNode, maxHeight, changed);
-		updateRelease (size, pa, na, n, newNode, split, changed);
 		
 	}
 	
@@ -222,28 +238,31 @@ public class LeapListDB {
 	
 	public void leapListRemove(LeapList[] ll, long[] keys, int size)
 	{
+		dbLock.lock();
+		try {
+		    LeapNode[][]  pa = new LeapNode[size][LeapList.MAX_LEVEL];
+		    LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
+		    LeapNode[] n = new LeapNode[size];
+		    LeapNode[][] oldNode = new LeapNode[size][2];
+		    int j;
+		    boolean[] changed = new boolean[size], merge = new boolean[size];
+		   
 	
-	    LeapNode[][]  pa = new LeapNode[size][LeapList.MAX_LEVEL];
-	    LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-	    LeapNode[] n = new LeapNode[size];
-	    LeapNode[][] oldNode = new LeapNode[size][2];
-	    int j;
-	    boolean[] changed = new boolean[size], merge = new boolean[size];
-	   
-
-	    for(j=0; j<size; j++)
-	    {
-	        n[j] = new LeapNode();
-	        keys[j]+=2; // Avoid sentinel
-	    }
-	    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed);
-	    RemoveLT(size,pa,na,n,oldNode,merge,changed);
-	   /* for(j=0; j<MAX_ROW; j++)
-	    {
-	       // init_node_trie(n[j]); TODO new trie() and run in ctor new LeapNode()
-	    }*/
-	    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed);
-	    
+		    for(j=0; j<size; j++)
+		    {
+		        n[j] = new LeapNode();
+		        keys[j]+=2; // Avoid sentinel
+		    }
+		    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed);
+		    RemoveLT(size,pa,na,n,oldNode,merge,changed);
+		   /* for(j=0; j<MAX_ROW; j++)
+		    {
+		       // init_node_trie(n[j]); TODO new trie() and run in ctor new LeapNode()
+		    }*/
+		    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed);
+		} finally {
+			dbLock.unlock();
+		}
 	}
 
 	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
@@ -392,7 +411,12 @@ public class LeapListDB {
 	}
 
 	public Object[] RangeQuery (LeapList l,long low, long high){
-		return l.RangeQuery(low, high);
+		dbLock.lock();
+		try {
+			return l.RangeQuery(low, high);
+		} finally {
+			dbLock.unlock();
+		}
 	}
 	
 }
