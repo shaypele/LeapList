@@ -46,7 +46,6 @@ public class LeapList {
 					else
 						x = x_next;
 				}
-				
 				if (restartSearch){
 					break;
 				}
@@ -80,26 +79,40 @@ public class LeapList {
 	public Object[] RangeQuery (long low, long high){
 	    LeapNode n;
 	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
+	    ArrayList<LeapNode> nodesToIterate = new ArrayList<LeapNode>();
+	    boolean restartSearch = false;
 	    low = low+2; // Avoid sentinel
 	    high = high+2; // Avoid sentinel
-	
-	    n = searchPredecessor( low, null, null);
+	    // First get a set of sequential nodes that all of them are live. It gives us a snapshot of the strucutre.
+	    // Then iterate them while "offline" and return the set.
+	    do{
+	    	restartSearch = false;
+	    	nodesToIterate.clear();
+	    	n = searchPredecessor( low, null, null);
+	    	nodesToIterate.add(n);
+	    	while (high>n.high)
+	 	    {
+	    		 if (!n.live){
+	    			 restartSearch = true;
+	    			 break;
+	    		 }
+	    		 if (n.getNext(0) != null){
+	 	    		n = n.getNext(0);
+	 	    		nodesToIterate.add(n);
+	 	    	}
+	 	    }
+	    } while(restartSearch);
 	    
-	    while (high>n.high)
-	    {
-	    	n = addValuesToSet(low, high, n, rangeSet);
-	    	if (n.getNext(0) != null){
-	    		n = n.getNext(0);
-	    	}
+	    for (LeapNode node : nodesToIterate){
+	    	addValuesToSet(low, high, node, rangeSet);
 	    }
-	    addValuesToSet(low, high, n, rangeSet);
 	   
 	    return rangeSet.toArray();
 	}
 
 
 
-	LeapNode addValuesToSet(long low, long high, LeapNode n,
+	void addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
 		for (int i = 0; i < n.count ; i++)
 		{
@@ -108,7 +121,6 @@ public class LeapList {
 				rangeSet.add(n.data[i].value);
 			}
 		}
-		return n;
 	}
 
 }

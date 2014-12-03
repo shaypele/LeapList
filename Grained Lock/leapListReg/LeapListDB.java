@@ -78,14 +78,14 @@ public class LeapListDB {
 							n[i].Marked = true;
 							isMarked = true;
 						}
-						// Create new nodes and decide whether to split or not only after log has been acquired
+						// Create new nodes and decide whether to split or not only after lock has been acquired
 						updateSetup (ll, keys, values, size, n, newNode, maxHeight, split, changed, i);
-						for ( byte level = 0; valid && ( level < n[i].level ); level++){
+						for ( int level = 0; valid && ( level < maxHeight[i] ); level++){
 							pred = pa[i][level];
 							succ = na[i][level];
 							if (pred != prevPred){
 								pred.lock();
-								highestLocked = level;
+								highestLocked = (byte) level;
 								prevPred = pred;
 							}
 							valid = !pred.Marked && pred.getNext(level) == succ /*&& (n[i].getNext(level) == null || (n[i].getNext(level) != null && n[i].getNext(level).live)  )*/;
@@ -236,7 +236,7 @@ public class LeapListDB {
 	}
 	
 	
-	void updateRelease (int size, LeapNode[][] pa, LeapNode[][] na, LeapNode[] n, LeapNode[][] newNode, boolean[] split,
+	void  updateRelease (int size, LeapNode[][] pa, LeapNode[][] na, LeapNode[] n, LeapNode[][] newNode, boolean[] split,
 									boolean[] changed, int j){
 			int i = 0;
 			
@@ -285,8 +285,8 @@ public class LeapListDB {
                 if (split[j]){
                 	newNode[j][1].live = true;
                 }
-                
-            	n[j].live = false;
+                n[j].live = false;
+            	
             	
             	/*if (n[j].next[0] == null){
             		int p = 5;
@@ -505,12 +505,12 @@ public class LeapListDB {
 	            n[j].live = true;
 	            if(merge[j])
 	            {
-	            	oldNode[j][1].trie=null;
 	            	oldNode[j][1].live = false;
+	            	oldNode[j][1].trie=null;
 	            }
 
-	            oldNode[j][0].trie=null;
 	            oldNode[j][0].live = false;
+	            oldNode[j][0].trie=null;
 	        }
 	        else
 	        {
@@ -524,11 +524,16 @@ public class LeapListDB {
 			if (node.count > 0)
 	        {
 				if (node.trie != null){
-		            short indexRes = node.trie.trieFindVal(key);
-		            if (indexRes != -1)
-		            {
-		                return node.data[indexRes].value;
-		            }
+					try{
+			            short indexRes = node.trie.trieFindVal(key);
+			            if (indexRes != -1)
+			            {
+			                return node.data[indexRes].value;
+			            }
+					}
+					catch(NullPointerException ex){
+						return null;
+					}
 				}
 				else
 				{

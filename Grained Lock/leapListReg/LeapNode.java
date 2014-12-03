@@ -17,6 +17,7 @@ public class LeapNode {
 	private ArrayList<AtomicReference<LeapNode>> next ;
 	Trie trie;
 	volatile public boolean Marked;
+	public int lastID = 0;
 	
 	public final ReentrantLock nodeLock = new ReentrantLock();
 	

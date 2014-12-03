@@ -9,31 +9,32 @@ import leapListReg.LeapNode;
 
 public class Test {
 
-	public static void main(String[] args) {
+	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
 		int arrSize = 600;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
-			arrRand [i] = Math.abs(/*rand.nextLong()*/rand.nextInt(100000)); 
+			arrRand [i] = Math.abs(rand.nextLong()); 
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
 		TestThread thread3 = new TestThread( db , 4 , arrRand, arrSize * 2 /3, arrSize );
 		TestThread threadRem1 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
 		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
+		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
 		long start = System.nanoTime();
 		
 		thread1.start();
 		thread2.start();
-		//thread3.start();
+		thread3.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
-			//thread3.join();
+			thread3.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
@@ -77,9 +78,11 @@ public class Test {
 	     
 	    threadRem1.start();
 	    threadRem2.start();
+	    threadRQ.start();
 	    try{
 	    	threadRem1.join();
 	    	threadRem2.join();
+	    	threadRQ.join();
 	    }
 	    catch (InterruptedException e) { };
 	      
@@ -123,7 +126,13 @@ public class Test {
 			System.out.println(" Total number of items is " + totItems);
 			
 			System.out.println(" OK data is sorted! ");
-			
+	}
+	
+	public static void main(String[] args) {
+		
+		for (int i=0 ; i < 10 ; i ++){
+			doTest();
+		}
 	}
 
 }

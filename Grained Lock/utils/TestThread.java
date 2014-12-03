@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Random;
+
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
 import leapListReg.LeapNode;
@@ -67,6 +69,8 @@ public class TestThread extends Thread {
 			break;
 		case 5:
 			removeRand();
+		case 6:
+			getRQ();
 		}
 		
 		
@@ -110,6 +114,18 @@ public class TestThread extends Thread {
 		
 		
 		System.out.println("XXXXXX");*/
+	}
+	
+	private void getRQ() {
+		LeapList list0 = db.GetListByIndex(0);
+		int cell1,cell2;
+		Random rand = new Random();
+		cell1 = rand.nextInt(arrKeys.length );
+		for (int i = 0 ; i < 100 ; i++){
+			cell2 = rand.nextInt(arrKeys.length - cell1) + cell1;
+			db.RangeQuery(list0, cell1, cell2);
+		}
+		
 	}
 
 	private void removeRand() {
