@@ -16,7 +16,7 @@ public class Test {
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
-			arrRand [i] = Math.abs(rand.nextLong()); 
+			arrRand [i] = Math.abs(/*rand.nextLong()*/rand.nextInt(100000)); 
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
@@ -27,20 +27,20 @@ public class Test {
 		
 		thread1.start();
 		thread2.start();
-		thread3.start();
+		//thread3.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
-			thread3.join();
+			//thread3.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
 	      
 	      //System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
 	      LeapNode head = list0.GetHeadNode();
-	      long min = 0 ;
+	      long min = -1 ;
 	      int j = 0;
 	      int totItems = 0;
 			do 
@@ -69,7 +69,7 @@ public class Test {
 				//System.out.println("num of items " + k + "\n");
 				totItems+=k;
 				j++;
-				head = head.next[0];
+				head = head.getNext(0);
 			}
 			while (head!= null);
 			
@@ -116,7 +116,7 @@ public class Test {
 				System.out.println("num of items " + k + "\n");
 				totItems+=k;
 				j++;
-				head = head.next[0];
+				head = head.getNext(0);
 			}
 			while (head!= null);
 			

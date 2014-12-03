@@ -1,6 +1,7 @@
 package leapListReg;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import utils.LeapSet;
 
@@ -11,12 +12,13 @@ public class LeapList {
 	static final int NODE_SIZE = 60;
 	
 	LeapNode head;
-
+	LeapNode tail;
+	//volatile LeapNode afterTail;
 	public LeapList () {
 		head = new LeapNode (true, Long.MIN_VALUE, Long.MIN_VALUE, 0, MAX_LEVEL, null);
-		LeapNode tail = new LeapNode (true, Long.MAX_VALUE, Long.MAX_VALUE, 0, MAX_LEVEL, null);
+		tail = new LeapNode (true, Long.MAX_VALUE , Long.MAX_VALUE, 0, MAX_LEVEL, null);
 		for (int i = 0; i < MAX_LEVEL; i++){
-			head.next[i] = tail;
+			head.setNext( i, tail);
 		}
 	}
 	
@@ -28,14 +30,16 @@ public class LeapList {
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
-		//do{
+		boolean restartSearch = false;
+		do{
 			x = this.head;
+			restartSearch = false;
 			for (int i = MAX_LEVEL -1; i >= 0; i--) {
 				while (true){
-					x_next = x.next[i];
-					if (!x_next.live){
-						
-						continue;
+					x_next = x.getNext(i);
+					if (!x_next.live ){
+						restartSearch = true;
+						break;
 					}
 					if (x_next.high >= key)
 						break;
@@ -43,14 +47,16 @@ public class LeapList {
 						x = x_next;
 				}
 				
-				
+				if (restartSearch){
+					break;
+				}
 				
 				if (pa != null)
 					pa[i] = x;
 				if (na != null)
 					na[i] = x_next;
 			}
-		//}while(restartSearch);
+		}while(restartSearch);
 		return x_next;
 	}
 	
@@ -82,8 +88,8 @@ public class LeapList {
 	    while (high>n.high)
 	    {
 	    	n = addValuesToSet(low, high, n, rangeSet);
-	    	if (n.next[0] != null){
-	    		n = n.next[0];
+	    	if (n.getNext(0) != null){
+	    		n = n.getNext(0);
 	    	}
 	    }
 	    addValuesToSet(low, high, n, rangeSet);

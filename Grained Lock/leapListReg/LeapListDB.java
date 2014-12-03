@@ -7,7 +7,7 @@ import utils.Trie;
 
 public class LeapListDB {
 	static final  int MAX_ROW = 4;
-	LeapList[] LeapLists = new LeapList[MAX_ROW];
+	volatile LeapList[] LeapLists = new LeapList[MAX_ROW];
 	
 	public LeapListDB () {
 		for (int i=0; i < MAX_ROW ; i++)
@@ -88,7 +88,7 @@ public class LeapListDB {
 								highestLocked = level;
 								prevPred = pred;
 							}
-							valid = !pred.Marked && pred.next[level] == succ;
+							valid = !pred.Marked && pred.getNext(level) == succ /*&& (n[i].getNext(level) == null || (n[i].getNext(level) != null && n[i].getNext(level).live)  )*/;
 						}
 						if (!valid){
 							continue;
@@ -111,6 +111,16 @@ public class LeapListDB {
 							prevPred = pa[i][j];
 						}
 					}
+					
+					/*if ( isMarked ){
+						//n[i].lock();
+						if (n[i].Marked && n[i].nodeLock.isHeldByCurrentThread() ){
+							n[i].unlock();
+							lastLockedNode = null;
+							n[i].Marked = false;
+							isMarked = false;
+						}
+					}*/
 				}
 			}
 		}	
@@ -129,7 +139,7 @@ public class LeapListDB {
 		return l;
 	}
 	
-	 void updateSetup (LeapList[] ll, long [] keys, Object [] values, int size, 
+	 void updateSetup (  LeapList[] ll, long [] keys, Object [] values, int size, 
 										LeapNode[] n, LeapNode [][] newNode, int [] maxHeight, boolean[] split, boolean[] changed, int i){
 			if (n[i].count == LeapList.NODE_SIZE){
 				split[i] = true;
@@ -173,7 +183,7 @@ public class LeapListDB {
 		}
 		else{
 			for (j = 0; j < n.count; i++, j++){
-				if (n.data[j].key == key){     //there is an int overwrite in the prof. cod. not sure what it does.
+				if (n.data[j].key == key){     
 					newNode[m].data[i].key = n.data[j].key;
 					newNode[m].data[i].value = val;
 					changed = true;
@@ -234,42 +244,57 @@ public class LeapListDB {
 				if (split[j]){
 					if (newNode[j][1].level > newNode[j][0].level){
 						for (i = 0; i < newNode[j][0].level; i++){
-							newNode[j][0].next[i] = newNode[j][1];
-                            newNode[j][1].next[i] = n[j].next[i];
+							newNode[j][0].setNext(i, newNode[j][1]) ;
+                            newNode[j][1].setNext(i, n[j].getNext(i));
 						}
 						 for (; i < newNode[j][1].level; i++)
-	                            newNode[j][1].next[i] = n[j].next[i];
+	                            newNode[j][1].setNext(i,n[j].getNext(i));
 					}
 					else
                     {   
                         for (i = 0; i < newNode[j][1].level; i++)
                         {
-                            newNode[j][0].next[i] = newNode[j][1];
-                            newNode[j][1].next[i] = n[j].next[i];
+                            newNode[j][0].setNext(i, newNode[j][1]);
+                            newNode[j][1].setNext(i, n[j].getNext(i));
                         }
-                        for (; i < newNode[j][0].level; i++)
-                            newNode[j][0].next[i] = na[j][i];
+                        for (; i < newNode[j][0].level; i++){
+                            newNode[j][0].setNext(i, na[j][i]);
+                        }
                     }
 				}
 				else
                 {
                     for (i = 0; i < newNode[j][0].level; i++)
                     {
-                        newNode[j][0].next[i] = n[j].next[i];
+                        newNode[j][0].setNext(i, n[j].getNext(i));
                     }
                 }
 				
 				for(i=0; i < newNode[j][0].level; i++)
                 {
-                    pa[j][i].next[i] = newNode[j][0];
+                    pa[j][i].setNext(i, newNode[j][0]);
                 }
                 if (split[j] && (newNode[j][1].level > newNode[j][0].level)){
                     for(; i < newNode[j][1].level; i++)
                     { 	
-                        pa[j][i].next[i] = newNode[j][1];
+                        pa[j][i].setNext(i, newNode[j][1]);
                     }
                 }
-
+                
+                newNode[j][0].live = true;
+                if (split[j]){
+                	newNode[j][1].live = true;
+                }
+                
+            	n[j].live = false;
+            	
+            	/*if (n[j].next[0] == null){
+            		int p = 5;
+            		p = 9 * 9;
+            	}
+            	*/
+            	
+            	
 			}
 		
 	}
@@ -330,7 +355,7 @@ public class LeapListDB {
 			    			 isMarkedArr[0] = true;
 			    		}
 			    		 
-			    		oldNode[j][1] = oldNode[j][0].next[0];
+			    		oldNode[j][1] = oldNode[j][0].getNext(0);
 			         	if (oldNode[j][1]!= null && 
 			         		(oldNode[j][0].count + oldNode[j][1].count - 1) <= LeapList.NODE_SIZE ) 
 			         	{
@@ -368,7 +393,7 @@ public class LeapListDB {
 								highestLocked = level;
 								prevPred = pred;
 							}
-							valid = !pred.Marked && pred.next[level] == succ;
+							valid = !pred.Marked && pred.getNext(level) == succ;
 						}
 						if (!valid){
 							continue;
@@ -386,7 +411,7 @@ public class LeapListDB {
 									highestLocked = level;
 									prevPred = pred;
 								}
-								valid = !pred.Marked && pred.next[level] == succ;
+								valid = !pred.Marked && pred.getNext(level) == succ;
 							}
 							if (!valid){
 								continue;
@@ -459,21 +484,21 @@ public class LeapListDB {
 	            if (merge[j])
 	            {   
 	                for (; i < oldNode[j][1].level; i++)
-	                    n[j].next[i] = oldNode[j][1].next[i];//.UnMark();
+	                    n[j].setNext(i, oldNode[j][1].getNext(i));//.UnMark();
 	            }
 	            for (; i < oldNode[j][0].level; i++)
-	                n[j].next[i] = oldNode[j][0].next[i];//.UnMark();
+	                n[j].setNext(i, oldNode[j][0].getNext(i));//.UnMark();
 	            
 	            
 	            for(i = 0; i < oldNode[j][0].level; i++)
 	            {   
-	                pa[j][i].next[i] = n[j];
+	                pa[j][i].setNext(i, n[j]);
 	            }
 	            
 	            if ( merge[j] && ( oldNode[j][0].level < oldNode[j][1].level ) ){
 	            	for(; i < oldNode[j][1].level; i++)
 		            {  
-	            		pa_Node1[j][i].next[i] = n[j];
+	            		pa_Node1[j][i].setNext(i, n[j]);
 		            }
 	            }
 	            
