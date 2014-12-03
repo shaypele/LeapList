@@ -12,15 +12,16 @@ public class Test {
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
 		
-		long[] arrRand = new long[300];
+		long[] arrRand = new long[3000];
 		Random rand = new Random();
-		for (int i = 0 ; i < 300 ; i++){
+		for (int i = 0 ; i < 3000 ; i++){
 			arrRand [i] = Math.abs(rand.nextLong()); 
 		}
-		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , 100);
-		TestThread thread2 = new TestThread( db , 4 , arrRand, 100 , 200);
-		TestThread thread3 = new TestThread( db , 4 , arrRand, 200 , 300);
-		
+		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , 1000);
+		TestThread thread2 = new TestThread( db , 4 , arrRand, 1000 , 2000);
+		TestThread thread3 = new TestThread( db , 4 , arrRand, 2000 , 3000);
+		long start = System.nanoTime();
+
 		thread1.start();
 		thread2.start();
 		thread3.start();
@@ -34,6 +35,11 @@ public class Test {
 	      catch (InterruptedException e) { };
 
 	      LeapNode head = list0.GetHeadNode();
+	      
+	      long end = System.nanoTime();
+	      
+	      System.out.println("General Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
+	      
 	      long min = 0 ;
 	      int j = 0;
 			do 
