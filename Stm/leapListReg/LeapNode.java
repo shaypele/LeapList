@@ -1,25 +1,26 @@
 package leapListReg;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import utils.LeapSet;
 import utils.Trie;
 
 public class LeapNode {
-	volatile boolean live = true;
+	volatile AtomicBoolean live = new AtomicBoolean();
 	volatile public long low;
 	volatile public long high;
 	volatile public int count;
 	volatile byte level;
-	volatile public boolean Marked;
+	volatile public AtomicBoolean Marked = new AtomicBoolean();
 	public LeapSet [] data = new LeapSet[LeapList.NODE_SIZE]; //the array must be sorted by keys so that LeapSet with the smallest key is at LeapSet[0] etc.
 	private ArrayList<AtomicReference<LeapNode>> next ;
 	Trie trie;
 	
 	public LeapNode (boolean live, long low, long high, int count, byte level, LeapSet[] sortedPairs) {
 		this();
-		this.live=live;
+		this.live.set(live);;
 		this.level = level;
 		this.low = low;
 		this.high = high;
@@ -43,8 +44,8 @@ public class LeapNode {
 			next.add(i, new AtomicReference<LeapNode>());
 		}
 			
-		this.Marked = false;
-		this.live = false; 
+		this.Marked.set(false);
+		this.live.set(false);
 		for (int i = 0 ; i < LeapList.NODE_SIZE ; i ++){
 			data[i] = new LeapSet(0,0);
 		}

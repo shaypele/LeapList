@@ -16,7 +16,7 @@ public class Test {
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
-			arrRand [i] = Math.abs(rand.nextLong()); 
+			arrRand [i] = Math.abs(rand.nextInt()); 
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
@@ -28,13 +28,13 @@ public class Test {
 		
 		thread1.start();
 		thread2.start();
-	//	thread3.start();
+		thread3.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
-	//		thread3.join();
+			thread3.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
