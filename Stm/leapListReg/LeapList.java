@@ -10,7 +10,7 @@ import utils.LeapSet;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 200;
+	static final int NODE_SIZE = 100;
 	
 	LeapNode head;
 	LeapNode tail;

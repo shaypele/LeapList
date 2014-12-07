@@ -9,6 +9,8 @@ import utils.Trie;
 
 public class LeapNode {
 	volatile AtomicBoolean live = new AtomicBoolean();
+	volatile AtomicBoolean[] lives = new AtomicBoolean[LeapList.MAX_LEVEL];
+	volatile AtomicBoolean[] Marks = new AtomicBoolean[LeapList.MAX_LEVEL];
 	volatile public long low;
 	volatile public long high;
 	volatile public int count;
@@ -20,7 +22,7 @@ public class LeapNode {
 	
 	public LeapNode (boolean live, long low, long high, int count, byte level, LeapSet[] sortedPairs) {
 		this();
-		this.live.set(live);;
+		this.live.set(live);
 		this.level = level;
 		this.low = low;
 		this.high = high;
@@ -42,6 +44,8 @@ public class LeapNode {
 		next=new  ArrayList<AtomicReference<LeapNode>>(LeapList.MAX_LEVEL);
 		for (int i = 0 ; i <LeapList.MAX_LEVEL ; i ++ ){
 			next.add(i, new AtomicReference<LeapNode>());
+			lives[i] = new AtomicBoolean(false);
+			Marks[i]= new AtomicBoolean(false);
 		}
 			
 		this.Marked.set(false);

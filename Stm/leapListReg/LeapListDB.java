@@ -60,15 +60,15 @@ public class LeapListDB {
 				updateLT (size, pa, na, n, newNode, maxHeight, changed,stopLoop,i);
 				}
 				catch(TransactionException e){
-					LeapNode prevPred = null;
+					
 					stopLoop=false;
-					for(int k=0 ; k<maxHeight[i] ;k++){
-	                	if(pa[i][k] != prevPred){
-	                	pa[i][k].Marked.set(false);
-	                	prevPred = pa[i][k];
-	                	}
-	                }
-	                n[i].Marked.set(false);
+					/*for(int k=0 ; k<maxHeight[i] ;k++){
+	                	
+	                	pa[i][k].Marks[k].set(false);
+	                	n[i].Marks[k].set(false);
+	                	
+	                }*/
+	               // n[i].Marked.set(false);
 					continue;
 				}
 				updateRelease (size, pa, na, n, newNode,maxHeight, split, changed,i);
@@ -193,8 +193,7 @@ public class LeapListDB {
 	void updateLT (int size, LeapNode [][] pa, LeapNode [][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight,
 								boolean[] changed,Boolean stopLoop,int j){
 		int i;
-		LeapNode prevPred = null;
-	
+		
         if (n[j].live.get() == false)
             throw new TransactionException();
 
@@ -227,22 +226,23 @@ public class LeapListDB {
 
         if(changed[j]) // lock
         {
-        	 
-	        if(!n[j].Marked.compareAndSet(false, true)) {
-	        	throw new TransactionException();
-	        }
-         
-            
+        	for(i = 0; i < n[j].level; i++)
+            {
+        		if (n[j].getNext(i) != null)
+                {
+			        if(!n[j].Marks[i].compareAndSet(false, true)) {
+			        	throw new TransactionException();
+			        }
+                }
+            }
             for(i = 0; i < maxHeight[j]; i++)
             {
-            	if(pa[j][i]!=prevPred){
-                if(!pa[j][i].Marked.compareAndSet(false, true)){
+            	
+                if(!pa[j][i].Marks[i].compareAndSet(false, true)){
                 	throw new TransactionException();
                 }
-                prevPred = pa[j][i];
             }
-            }
-            n[j].live.getAndSet(false);
+            n[j].live.set(false);
             	
         }
 
@@ -253,17 +253,21 @@ public class LeapListDB {
 		
 		int i = 0;
 		
-		if (changed[j]){
-			if (split[j]){
-				if (newNode[j][1].level > newNode[j][0].level){
-					for (i = 0; i < newNode[j][0].level; i++){
+		if (changed[j])
+		{
+			if (split[j])
+			{
+				if (newNode[j][1].level > newNode[j][0].level)
+				{
+					for (i = 0; i < newNode[j][0].level; i++)
+					{
 						newNode[j][0].setNext(i, newNode[j][1]) ;
                         newNode[j][1].setNext(i, n[j].getNext(i));
-                        
+                        n[j].Marks[i].set(false);
 					}
 					 for (; i < newNode[j][1].level; i++){
 						 newNode[j][1].setNext(i,n[j].getNext(i));
-						 
+						 n[j].Marks[i].set(false);
 					 }
 				}
 				else
@@ -272,12 +276,11 @@ public class LeapListDB {
                     {
                     	newNode[j][0].setNext(i, newNode[j][1]);
                         newNode[j][1].setNext(i, n[j].getNext(i));
-                        
+                        n[j].Marks[i].set(false);
                     }
                   
                     for (; i < newNode[j][0].level; i++){
                     	newNode[j][0].setNext(i, na[j][i]);
-                    	na[j][i].Marked.set(false);
                     }
                 }
 			}
@@ -286,34 +289,33 @@ public class LeapListDB {
                 for (i = 0; i < newNode[j][0].level; i++)
                 {
                 	 newNode[j][0].setNext(i, n[j].getNext(i));
-                	 
+                	 n[j].Marks[i].set(false);
                 }
             }
 			
 			for(i=0; i < newNode[j][0].level; i++)
             {
 				pa[j][i].setNext(i, newNode[j][0]);
+				pa[j][i].Marks[i].set(false);
             }
-            if (split[j] && (newNode[j][1].level > newNode[j][0].level)){
+            if (split[j] && (newNode[j][1].level > newNode[j][0].level))
+            {
                 for(; i < newNode[j][1].level; i++)
                 { 	
                 	pa[j][i].setNext(i, newNode[j][1]);
+                	pa[j][i].Marks[i].set(false);
                 }
             }
             
                       
-            LeapNode prevPred=null;
-            for(int k=0 ; k<maxHeight[j] ;k++){
-            	if(pa[j][k] != prevPred){
-            	pa[j][k].Marked.set(false);
-            	prevPred = pa[j][k];
-            	}
-            }
-            n[j].Marked.getAndSet(false);
-            newNode[j][0].live.getAndSet(true);
+          //  for(int k=0 ; k<maxHeight[j] ;k++){
+            //	pa[j][k].Marks[k].set(false);
+         //   }
+            //n[j].Marked.getAndSet(false);
+            newNode[j][0].live.set(true);
             if (split[j]){
             	
-            	newNode[j][1].live.getAndSet(true);
+            	newNode[j][1].live.set(true);
             	
             }
 		}

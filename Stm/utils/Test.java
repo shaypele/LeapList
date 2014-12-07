@@ -28,13 +28,13 @@ public class Test {
 		
 		thread1.start();
 		thread2.start();
-		thread3.start();
+		//thread3.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
-			thread3.join();
+	//		thread3.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
