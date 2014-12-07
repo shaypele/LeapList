@@ -44,7 +44,7 @@
 #include "ptst.h"
 
 /* This produces an operation log for the 'replay' checker. */
-/*#define DO_WRITE_LOG*/
+//#define DO_WRITE_LOG
 
 #ifdef DO_WRITE_LOG
 #define MAX_ITERATIONS 100000000
@@ -234,6 +234,7 @@ static void *thread_start(void *arg)
     unsigned long  id = (unsigned long)arg;
 
 #ifdef DO_WRITE_LOG
+	fprintf (stdout, "Thread Start\n");	
     log_t *log = global_log + id*MAX_ITERATIONS;
     interval_t my_int;
 #endif
@@ -282,6 +283,7 @@ static void *thread_start(void *arg)
 #ifdef DO_WRITE_LOG
     get_interval(my_int);
 #endif
+	fprintf (stdout, "Bef Max iter\n");	
     for ( i = 0; (i < MAX_ITERATIONS) && !shared.alarm_time; i++ )
     {
         /* O-3: ignore ; 4-11: proportion ; 12: ins/del */
@@ -289,7 +291,7 @@ static void *thread_start(void *arg)
 #ifdef DO_WRITE_LOG
         log->start = my_int;
 #endif
-        if ( ((r>>4)%100) <( rq_prop))
+       /* if ( ((r>>4)%100) <( rq_prop))
         {
             ov = v = set_rq(shared.set, k, (k+rq_size));
         }
@@ -298,15 +300,18 @@ static void *thread_start(void *arg)
             ov = v = set_lookup(shared.set, k);
         }
         else if ( ((r>>12)&1) )
-        {
+        {*/
+
+		//if (k % 3 != 0){
             v = (void *)((r&~7)|0x8);
+		//fprintf (stdout, "Before update\n");
             ov = set_update(shared.set, k, v, 1);
-        }
+		/*}
         else
         {
             v = NULL;
             ov = set_remove(shared.set, k);
-        }
+        }*/
 
 #ifdef DO_WRITE_LOG
         get_interval(my_int);
@@ -433,6 +438,8 @@ static void tstp_handler(int sig, siginfo_t *info, ucontext_t *uc)
 }
 #endif
 
+unsigned long log_header[3];
+
 int main (int argc, char **argv)
 {
     if ( argc != 8 )
@@ -496,13 +503,17 @@ int main (int argc, char **argv)
     }
 #endif
 
+    fprintf (stdout, "before multithreadtest \n");
+
     test_multithreaded ();
 
     dump_log ();
 
 #ifdef DO_WRITE_LOG
+    int  fd;
     printf("Writing log...\n");
     /* Write logs to data file */
+
     fd = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if ( fd == -1 )
     {

@@ -1,17 +1,20 @@
 
 ARCH      := INTEL
-DEBUGGING := -DNDEBUG
+DEBUGGING := 
+#-DNDEBUG
 
 ifeq ($(ARCH),INTEL)
-#CC          := gcc
+CC          := gcc-4.8
 #CC          := gcc-4.8#/home/pollux/home/hillelav/leaplist/gcc-4.7/install/bin/gcc
 #CC          := gcc
-CC           := /home/pollux/home/hillelav/tm_testing/gcc-4.8.1-install/bin/gcc
+#CC           := /home/pollux/home/hillelav/tm_testing/gcc-4.8.1-install/bin/gcc
 #CC           := /home/adi/gcc4.8/install/bin/gcc
 
 CFLAGS      := -O3 -g -DINTEL -fomit-frame-pointer -march=x86-64 -fgnu-tm -mrtm
 
-LDFLAGS     := -lpthread -fgnu-tm -litm 
+LDFLAGS     :=-fgnu-tm -litm -mrtm
+#LDFLAGS     := -mrtm
+
 endif
 
 ifeq ($(ARCH),PPC)
@@ -69,7 +72,8 @@ COMMON_DEPS += Makefile $(wildcard *.h)
 #TARGETS    += trie_test skip_stm_fraser skip_stm_herlihy skip_stm_lock leap_stm leap_no_stm skip_stm_gcc leap_light leap_tm_lock_multi leap_rwlock_multi leap_tm_lock leap_stm_multi
 #GC_HARNESS_TARGETS += leap_cas
 
-TARGETS    := leap_tm_lock_multi
+#TARGETS    := leap_rtm_multi leap_tm_lock_multi leap_FG_lock_multi
+TARGETS    :=  leap_FG_lock_multi
 # leap_rwlock_multi leap_stm_multi leap_cop_multi test_gcc_stm test_gcc_stm_perf 
 
 all: $(TARGETS) replay
@@ -108,7 +112,13 @@ replay: %: %.c $(COMMON_DEPS)
 leap_stm_multi: leap_stm_multi.o set_harness.o ptst.o gc.o trie.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
+leap_rtm_multi : leap_rtm_multi.o set_harness.o ptst.o gc.o trie.o
+	$(CC) -o $@ $^ -mrtm -lpthread
+
 leap_rwlock_multi: leap_rwlock_multi.o set_harness.o ptst.o gc.o trie.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+leap_FG_lock_multi: leap_FG_lock_multi.o set_harness.o ptst.o gc.o trie.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 leap_tm_lock_multi: leap_tm_lock_multi.o set_harness.o ptst.o gc.o trie.o
