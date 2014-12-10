@@ -1,6 +1,7 @@
 package leapListReg;
 
 import java.util.ArrayList;
+
 import org.deuce.Atomic;
 
 
@@ -24,7 +25,7 @@ public class LeapList {
 		return this.head;
 	}
  	
-	//@Atomic()
+	@Atomic()
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
@@ -65,7 +66,7 @@ public class LeapList {
 		return x_next;
 	}
 	
-	@Atomic
+	//@Atomic
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -73,10 +74,17 @@ public class LeapList {
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
 		LeapNode ret = searchPredecessor( key, pa, na);
-		index = ret.trie.trieFindVal(key);
-		if (index != -1)
+		try
 		{
-			retVal =  ret.data[index].value;
+            index = ret.trie.trieFindVal(key);
+            if (index != -1)
+            {
+                return ret.data[index].value;
+            }
+		}
+		catch(NullPointerException e)
+		{
+			return null;
 		}
 		return retVal;
 	}

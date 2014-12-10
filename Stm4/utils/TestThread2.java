@@ -8,15 +8,19 @@ import leapListReg.LeapList;
 import leapListReg.LeapListDB;
 
 
-public class TestThread extends Thread {
+public class TestThread2 extends Thread {
 	
 	LeapListDB db ;
 	int funcToRun;
+	int[] funcsToRun;
 	long[] arrKeys;
 	int arrStart;
 	int arrEnd;
+	int[] lists;
+	int size;
 	
-	public TestThread(LeapListDB db, int funcToRun, long[] arrKeys, int arrStart,int arrEnd){
+	
+	public TestThread2(LeapListDB db, int funcToRun, long[] arrKeys, int arrStart,int arrEnd){
 		this.db = db;
 		this.funcToRun = funcToRun;
 		this.arrKeys = arrKeys;
@@ -24,6 +28,15 @@ public class TestThread extends Thread {
 		this.arrEnd = arrEnd;
 	}
 	
+	public TestThread2(LeapListDB db, int[] listToChoose, int[] funcToRun, long[] arrRand, int size) {
+		this.db = db;
+		this.funcsToRun = funcToRun;
+		this.lists = listToChoose;
+		this.arrKeys=arrRand;
+		this.size=size;
+	}
+
+
 	void insert1(){
 		LeapList list0 = db.GetListByIndex(0);
 		//db.leapListUpdate(new LeapList[] {list0}, new long[]{3, }, new Object[]{"1st"},1);
@@ -137,7 +150,6 @@ public class TestThread extends Thread {
 		
 		Random rand = new Random();
 		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		int cell1,cell2,high,low;
 		cell1 = rand.nextInt(Integer.MAX_VALUE);
 		cell2 = rand.nextInt(Integer.MAX_VALUE);
@@ -151,14 +163,8 @@ public class TestThread extends Thread {
 			low=cell1;
 		}
 		
-			System.out.println(" Range in list 0 between: " + low + "  and  " + high);
+			System.out.println(" Range between: " + low + "  and  " + high);
 			Object[] arr =	db.RangeQuery(list0, low, high);
-			
-			for (Object obj : arr){
-				System.out.println(" Item Is " + obj.toString() + "\n");
-			}
-			System.out.println(" Range in list 1 between: " + low + "  and  " + high);
-			 arr =	db.RangeQuery(list1, low, high);
 			
 			for (Object obj : arr){
 				System.out.println(" Item Is " + obj.toString() + "\n");
@@ -168,24 +174,22 @@ public class TestThread extends Thread {
 
 	private void removeRand() {
 		
-		
+		Random rand = new Random();
 		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListRemove(new LeapList[] {list0,list1}, new long[]{arrKeys[i],arrKeys[i] },2);
+			db.leapListRemove(new LeapList[] {list0}, new long[]{arrKeys[i], },1);
 		}
 		
 	}
 
 	private void insertRand() {
 
-		
+		Random rand = new Random();
 		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListUpdate(new LeapList[] {list0,list1}, new long[]{arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i]},2);
+			db.leapListUpdate(new LeapList[] {list0}, new long[]{arrKeys[i], }, new Object[]{arrKeys[i]},1);
 		}
 		
 	}

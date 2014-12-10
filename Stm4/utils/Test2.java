@@ -10,53 +10,57 @@ import leapListReg.LeapNode;
 
 
 
-public class Test {
+public class Test2 {
+	/*
+	
+	public static void fillThreadArray(LeapListDB  db,TestThread2[] threadArr, long[] arrRand, int size) {
+		Random rand = new Random();
+		int[] listToChoose = new int[3];
+		int[] funcsToRun = new int[3];
+		for (int i = 0; i < listToChoose.length; i++) {
+			listToChoose[i] = rand.nextInt(4);
+			funcsToRun[i] = rand.nextInt(4) + 4;
+		}
+		for (int i = 0; i < threadArr.length; i++) {
+			threadArr[i] = new TestThread2(db, listToChoose , funcsToRun,arrRand,size);
+		}
+		
+	}
 
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
-		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
-		int arrSize = 600;
+		TestThread2[] threads = new TestThread2[3];
+		int arrSize = 1800;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
 			arrRand [i] = Math.abs(rand.nextInt()); 
 		}
-		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
-		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
-		TestThread thread3 = new TestThread( db , 4 , arrRand, arrSize * 2 /3, arrSize );
-		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
-		TestThread threadRem3 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
-		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
-		TestThread threadLook1 = new TestThread( db , 7 , arrRand, 0 , arrSize / 3);
+		fillThreadArray(db,threads,arrRand,arrSize/5);
+		
 		long start = System.nanoTime();
 		
-		thread1.start();
-		thread2.start();
-		thread3.start();
+		for (int i = 0; i < threads.length; i++) {
+			threads[i].start();
+		}
 
 		
 		try {
-			thread1.join();
-			thread2.join();
-			thread3.join();
+			for (int i = 0; i < threads.length; i++) {
+				threads[i].join();
+			}
 	      }
 	      catch (InterruptedException e) { };
 	      
-	      LeapNode[] heads = new LeapNode[2];
-	      heads[0] =list0.GetHeadNode();
-	      heads[1] =list1.GetHeadNode();
 	      
 	      //System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
-	   /*   
-	      long min ;
-	      int j ;
-	      int totItems = 0 ;
-	      for (int h = 0; h < heads.length; h++) {
-		      LeapNode head = heads[h];
-		      min=-1;
-		      totItems = 0;
-		      j = 0;
+	      for (int t = 0; t < threads.length; t++) {
+	
+	    	TestThread2 tempThread =threads[t];
+	      LeapNode head = tempThread.db.GetListByIndex(tempThread.lists[t]).GetHeadNode();
+	      long min = -1 ;
+	      int j = 0;
+	      int totItems = 0;
 			do 
 			{
 				//System.out.println("new node " + j + "\n");
@@ -87,8 +91,7 @@ public class Test {
 			}
 			while (head!= null);
 			
-	      }
-			System.out.println(" Total number of items before delete is " + totItems);*/
+			System.out.println(" Total number of items before delete is " + totItems);
 	     
 		threadRQ.start();
 		threadRem2.start();
@@ -103,10 +106,9 @@ public class Test {
 	    catch (InterruptedException e) { };
 	      
 	      long end = System.nanoTime();
-	      /*
-	      //System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
-	      for (int h = 0; h < heads.length; h++) {
-			  LeapNode head = heads[h];
+	      
+	      System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
+	       head = list0.GetHeadNode();
 	       min = 0 ;
 	       j = 0;
 	       totItems = 0;
@@ -143,9 +145,7 @@ public class Test {
 			System.out.println(" Total number of items is " + totItems);
 			
 			System.out.println(" OK data is sorted! ");
-	}*/
-	      
-	      System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
+	}
 	}
 	
 	public static void main(String[] args) {
@@ -153,6 +153,6 @@ public class Test {
 			doTest();
 		
 	}
-
+*/
 }
 

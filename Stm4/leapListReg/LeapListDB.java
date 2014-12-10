@@ -12,7 +12,7 @@ import utils.Trie;
 
 
 public class LeapListDB {
-	static final  int MAX_ROW = 4;
+	public static final  int MAX_ROW = 4;
 	LeapList[] LeapLists = new LeapList[MAX_ROW];
 
 	
@@ -55,29 +55,32 @@ public class LeapListDB {
 				newNode[i][1] = new LeapNode();
 				keys[i] += 2 ; // avoid sentinel; 
 			}
-			do{
-				for(int i=0;i< size ; i++){
-				stopLoop = true;
-				updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed,i);
-				try{
-				updateLT (size, pa, na, n, newNode, maxHeight, changed,stopLoop,i);
-				}
-				catch(TransactionException e){
-					//System.out.print("in catch " + Retry + "\n");
-					Retry = 0;
-					stopLoop=false;
-					/*for(int k=0 ; k<maxHeight[i] ;k++){
-	                	
-	                	pa[i][k].Marks[k].set(false);
-	                	n[i].Marks[k].set(false);
-	                	
-	                }*/
-	               // n[i].Marked.set(false);
-					continue;
-				}
-				updateRelease (size, pa, na, n, newNode,maxHeight, split, changed,i);
-				}
-			}while(!stopLoop);
+			for(int i=0;i< size ; i++)
+			{
+				do{
+					
+					stopLoop = true;
+					updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed,i);
+					try{
+					updateLT (size, pa, na, n, newNode, maxHeight, changed,stopLoop,i);
+					}
+					catch(TransactionException e){
+						//System.out.print("in catch " + Retry + "\n");
+						Retry = 0;
+						stopLoop=false;
+						/*for(int k=0 ; k<maxHeight[i] ;k++){
+		                	
+		                	pa[i][k].Marks[k].set(false);
+		                	n[i].Marks[k].set(false);
+		                	
+		                }*/
+		               // n[i].Marked.set(false);
+						continue;
+					}
+					updateRelease (size, pa, na, n, newNode,maxHeight, split, changed,i);
+				//	}
+				}while(!stopLoop);
+			}
 			
 	}
 	
@@ -342,9 +345,11 @@ public class LeapListDB {
 		        n[j] = new LeapNode();
 		        keys[j]+=2; // Avoid sentinel
 		    }
-		    do{
-		    	for(j=0; j<size; j++)
-		        {
+		    for(j=0; j<size; j++)
+	        {
+		    	
+		    	do{
+		    		
 			    	stopLoop=true;
 				    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed,j);
 				    try
@@ -357,8 +362,9 @@ public class LeapListDB {
 				    	continue;
 				    }
 				    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed,j);
-		        }
-		    }while(!stopLoop);
+			       // }
+	        	}while(!stopLoop);
+	        }
 	}
 	
 	@Atomic(retries = 64)
@@ -546,11 +552,16 @@ public class LeapListDB {
 		if(node!=null){
 			if (node.count > 0)
 	        {
+				try{
 	            short indexRes = node.trie.trieFindVal(key);
 	            if (indexRes != -1)
 	            {
 	                return node.data[indexRes].value;
 	            }
+				}
+				catch(NullPointerException e){
+					return null;
+				}
 	        }
 	    }
 	    return null;
