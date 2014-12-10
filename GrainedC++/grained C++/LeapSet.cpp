@@ -6,7 +6,7 @@ LeapSet::LeapSet(void)
 
 
 	
-	 LeapSet (long key, Object value){
+	 LeapSet::LeapSet(long key, void* value){
 		this->key = key;
 		this->value = value;
 	}

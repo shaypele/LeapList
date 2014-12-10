@@ -4,8 +4,9 @@ class LeapSet
 {
 public:
 	 long key;
-	 Object value;
+	 void* value;
 
 	LeapSet(void);
+	LeapSet (long key, void* value);
 	~LeapSet(void);
 };

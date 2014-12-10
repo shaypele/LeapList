@@ -1,22 +1,14 @@
 #include <climits> 
 #include "LeapList.h"
-#include "LeapNode.h"
-#include "LeapSet.h"
 
 
 
 
-static final char MAX_LEVEL = 10;
-
-static final int NODE_SIZE = 60;
-
-LeapNode*head;
-LeapNode*tail;
 
 LeapList::LeapList(void)
 {
-	head = new LeapNode (true, LONG_MIN,   LONG_MIN, 0, MAX_LEVEL, null);
-	tail = new LeapNode (true, LONG_MAX	 , LONG_MAX, 0, MAX_LEVEL, null);
+	head = new LeapNode (true, LONG_MIN,   LONG_MIN, 0, MAX_LEVEL);
+	tail = new LeapNode (true, LONG_MAX	 , LONG_MAX, 0, MAX_LEVEL);
 	for (int i = 0; i < MAX_LEVEL; i++){
 		head->setNext( i, tail);
 	}
@@ -26,26 +18,26 @@ LeapList::~LeapList(void)
 {
 }
 	
-	 LeapNode* GetHeadNode(){
-		return this.head;
+LeapNode* LeapList::GetHeadNode(){
+		return this->head;
 	}
  	
 	
-	LeapNode* searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
+	LeapNode* LeapList::searchPredecessor ( long key, LeapNode** pa, LeapNode** na){
 		
-		LeapNode* x, x_next = null;
+		LeapNode* x, *x_next = 0 ;
 		boolean restartSearch = false;
 		do{
-			x = this.head;
+			x = this->head;
 			restartSearch = false;
 			for (int i = MAX_LEVEL -1; i >= 0; i--) {
 				while (true){
-					x_next = x.getNext(i);
-					if (!x_next.live ){
+					x_next = x->getNext(i);
+					if (!x_next->live ){
 						restartSearch = true;
 						break;
 					}
-					if (x_next.high >= key)
+					if (x_next->high >= key)
 						break;
 					else
 						x = x_next;
@@ -54,9 +46,9 @@ LeapList::~LeapList(void)
 					break;
 				}
 				
-				if (pa != null)
+				if (pa != 0)
 					pa[i] = x;
-				if (na != null)
+				if (na != 0)
 					na[i] = x_next;
 			}
 		}while(restartSearch);
@@ -64,26 +56,27 @@ LeapList::~LeapList(void)
 	}
 	
 	// TODO: check if marked/live.
-	 Object lookUp (long key){
+	 void* LeapList::lookUp (long key){
 		int index ;
-		Object retVal = null;
-		LeapNode [] na = new LeapNode[MAX_LEVEL];
-		LeapNode [] pa = new LeapNode[MAX_LEVEL];
+		void* retVal = 0;
+		LeapNode** na = new LeapNode*[MAX_LEVEL];
+		LeapNode** pa = new LeapNode*[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
-		LeapNode ret = searchPredecessor( key, pa, na);
-		index = ret.trie.trieFindVal(key);
+		LeapNode* ret = searchPredecessor( key, pa, na);
+		index = ret->trie->trieFindVal(key);
 		if (index != -1)
 		{
-			retVal =  ret.data[index].value;
+			retVal =  ret->data[index]->value;
 		}
 		return retVal;
 	}
 	
 	// TODO: check if marked/live.
-	 Object[] RangeQuery (long low, long high){
-	    LeapNode n;
-	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
-	    ArrayList<LeapNode> nodesToIterate = new ArrayList<LeapNode>();
+	 void** LeapList::RangeQuery (long low, long high){
+	    LeapNode* n;
+		int i ;
+	    std::vector<void*> rangeSet ; 
+	    std::vector<LeapNode*> nodesToIterate ;
 	    boolean restartSearch = false;
 	    low = low+2; // Avoid sentinel
 	    high = high+2; // Avoid sentinel
@@ -92,37 +85,38 @@ LeapList::~LeapList(void)
 	    do{
 	    	restartSearch = false;
 	    	nodesToIterate.clear();
-	    	n = searchPredecessor( low, null, null);
-	    	nodesToIterate.add(n);
-	    	while (high>n.high)
+	    	n = searchPredecessor( low, 0, 0);
+			nodesToIterate.push_back(n);
+	    	while (high>n->high)
 	 	    {
-	    		 if (!n.live){
+	    		 if (!n->live){
 	    			 restartSearch = true;
 	    			 break;
 	    		 }
-	    		 if (n.getNext(0) != null){
-	 	    		n = n.getNext(0);
-	 	    		nodesToIterate.add(n);
+	    		 if (n->getNext(0) != 0){
+	 	    		n = n->getNext(0);
+					nodesToIterate.push_back(n);
 	 	    	}
 	 	    }
 	    } while(restartSearch);
 	    
-	    for (LeapNode node : nodesToIterate){
-	    	addValuesToSet(low, high, node, rangeSet);
+	    for ( i = 0 ; i < nodesToIterate.size(); i++){
+			LeapNode* node = nodesToIterate[i];
+	    	addValuesToSet(low, high, node, &rangeSet);
 	    }
 	   
-	    return rangeSet.toArray();
+	    return &rangeSet[0];
 	}
 
 
 
-	void addValuesToSet(long low, long high, LeapNode* n,
-			ArrayList<Object> rangeSet) {
-		for (int i = 0; i < n.count ; i++)
+	void LeapList::addValuesToSet(long low, long high, LeapNode* n,
+			std::vector<void*>* rangeSet) {
+		for (int i = 0; i < n->count ; i++)
 		{
-			if (n.data[i].key >= low && n.data[i].key <= high )
+			if (n->data[i]->key >= low && n->data[i]->key <= high )
 			{
-				rangeSet.add(n.data[i].value);
+				rangeSet->push_back(n->data[i]->value);
 			}
 		}
 	}
