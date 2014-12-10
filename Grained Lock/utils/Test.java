@@ -1,5 +1,6 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 
@@ -9,7 +10,7 @@ import leapListReg.LeapNode;
 
 public class Test {
 
-	public static void doTest(){
+	public static void doTest(int numThreads){
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
 		int arrSize = 600;
@@ -17,6 +18,10 @@ public class Test {
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
 			arrRand [i] = Math.abs(rand.nextLong()); 
+		}
+		ArrayList<TestThread> arrThreads = new ArrayList<TestThread>();
+		for (int i= 0 ; i < numThreads ; i++){
+			arrThreads.add(new TestThread(db , 4 , arrRand, i*arrSize/numThreads , i*arrSize/numThreads + arrSize/numThreads));
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
@@ -26,15 +31,24 @@ public class Test {
 		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
 		long start = System.nanoTime();
 		
-		thread1.start();
+		/*thread1.start();
 		thread2.start();
 		thread3.start();
+	*/
+		
+		for (int i= 0 ; i < numThreads ; i++){
+			arrThreads.get(i).start();
+		}
 
 		
 		try {
-			thread1.join();
+/*			thread1.join();
 			thread2.join();
 			thread3.join();
+			*/
+			for (int i= 0 ; i < numThreads ; i++){
+				arrThreads.get(i).join();
+			}
 	      }
 	      catch (InterruptedException e) { };
 	      
@@ -130,8 +144,8 @@ public class Test {
 	
 	public static void main(String[] args) {
 		
-		for (int i=0 ; i < 10 ; i ++){
-			doTest();
+		for (int i=0 ; i < 1 ; i ++){
+			doTest(4);
 		}
 	}
 

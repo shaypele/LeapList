@@ -42,6 +42,8 @@
 #include "rwlock.h"
 
 
+
+
 #define ASSERT_GC(X) {if(X==0) exit(999);}
 #define make_marked_ptr(_p)   ((void *)((unsigned long)(_p) | 1))
 #define mark_abo(_p) if(is_marked_ref(_p)) __transaction_cancel;
@@ -69,6 +71,9 @@ typedef struct node_t {
 #endif	/* USE_TRIE */
     volatile struct node_t volatile * next[MAX_LEVEL];  // Pointers.
 } node_t;
+
+
+void unlockPredForUpdateAndReset(volatile  node_t volatile  **pa,int highestLocked, vwLock lockOrder[MAX_LEVEL]);
 
 static void print_node2(volatile node_t *n, char *prefix)
 {
@@ -166,10 +171,16 @@ restart_look:
                 if (!x_next->live)
                 {
 		      
-				      printf("searching is marked = %d\n",x_next->isMarked);
-				      printf("next is = %d\n",x_next->next[0] );
-					printf("level is = %d\n",i );
-				      printf("MAX LEVEL IS = %d\n",x->level - 1 );
+		      printf("searching is marked = %d\n",x_next->isMarked);
+		      printf("next is = %d\n",x_next->next[0] );
+			printf("level is = %d\n",i );
+		      printf("MAX LEVEL IS = %d\n",x->level - 1 );
+			counter++;
+			if (counter == 20){
+				x->next[i] = x->next[i-1];
+				break;
+}
+				
                     goto restart_look;
                 }
 
@@ -366,7 +377,6 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
             {
                 if(overwrite)
                 {
-					new_node[m]->data[i].key = n->data[j].key;
                     new_node[m]->data[i].value = v;
                     changed = 1;
 #ifdef	USE_TRIE
@@ -453,12 +463,14 @@ void unlockPredForUpdate(volatile  node_t volatile  **pa,int highestLocked, vwLo
 	}
 }
 
+
+
 setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 {
     ptst_t   *ptst;
     volatile node_t volatile *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
 	 volatile node_t *predsLockOrder[MAX_ROW][MAX_LEVEL], *nLockOrder[MAX_ROW];
-    int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
+    int j, i,h, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
     unsigned long max_height[MAX_ROW];
     node_t *new_node[MAX_ROW][2];
     unsigned long cnttt = 0;
@@ -516,15 +528,10 @@ printf("different headddd \n");
 
 			if ( !isMarked )
 			{
-				OrderedLock_Acquire(&nLockOrder[j], &n[j]->lock , n[j]->sync_vars );
+				OrderedLock_Acquire(&nLockOrder[j], n[j]->lock , n[j]->sync_vars );
 				if (n[j]->isMarked){
 					OrderedLock_Release( &nLockOrder[j],n[j]->sync_vars );
 					printf("Try to lock and is marked, then release lock and try again\n");
-					#ifdef	USE_TRIE
-			            // deallocate the tries 
-			            trie_destroy(&new_node[j][0]->trie, ptst);
-			            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-					#endif	// USE_TRIE 
 					goto retry_update;
 				}
 				lastLockedNode = n[j];
@@ -552,7 +559,7 @@ printf("different headddd \n");
 				pred = preds[j][level];
 				succ = succs[j][level];
 				if (pred != prevPred){
-					OrderedLock_Acquire(&predsLockOrder[j][level], &pred->lock , pred->sync_vars );
+					OrderedLock_Acquire(&predsLockOrder[j][level], pred->lock , pred->sync_vars );
 					highestLocked = level;
 					prevPred = pred;
 				}
@@ -560,34 +567,29 @@ printf("different headddd \n");
 			}
 			if (!valid){
 				unlockPredForUpdate( preds[j], highestLocked, predsLockOrder[j]);
-				#ifdef	USE_TRIE
-		            // deallocate the tries 
-		            trie_destroy(&new_node[j][0]->trie, ptst);
-		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-				#endif	// USE_TRIE 
  				printf("pred not valid. Pred is marked = %d, next not right %d\n",!pred->isMarked,pred->next[level] == succ);
 				goto retry_update;
 			}	
     	
 	    	
-	/* *** Update TL
-	    __transaction_atomic 
+	
+	    //__transaction_atomic 
 	    { 
 	        
 	            if (n[j]->live == 0)
-	                __transaction_cancel;
+	                goto abortAndRetry;
 
 	            for(i = 0; i < n[j]->level; i++)
 	            {   
-	                if(preds[j][i]->next[i] != n[j]) __transaction_cancel;
-	                if(n[j]->next[i]) if(!n[j]->next[i]->live) __transaction_cancel;
+	                if(preds[j][i]->next[i] != n[j]) goto abortAndRetry;
+	                if(n[j]->next[i]) if(!n[j]->next[i]->live) goto abortAndRetry;
 	            }
 
 	            for(i = 0; i < max_height[j]; i++)
 	            {   
-	                if(preds[j][i]->next[i] != succs[j][i]) __transaction_cancel;
-	                if(!(preds[j][i]->live)) __transaction_cancel;
-	                if(!(succs[j][i]->live)) __transaction_cancel;
+	                if(preds[j][i]->next[i] != succs[j][i]) goto abortAndRetry;
+	                if(!(preds[j][i]->live)) goto abortAndRetry;
+	                if(!(succs[j][i]->live)) goto abortAndRetry;
 	            }
 
 
@@ -598,14 +600,28 @@ printf("different headddd \n");
 	                {
 	                    if (n[j]->next[i] != NULL)
 	                    {
-	                        mark_abo(n[j]->next[i]);
+							if(is_marked_ref(n[j]->next[i])) 
+							{
+								for (h = 0; h < i ; h++)
+								{
+									UNMARK(n[j]->next[i]);										
+								}
+								goto abortAndRetry;
+							}
 	                        MARK(n[j]->next[i]);
 	                    }
 	                }                        
 
 	                for(i = 0; i < max_height[j]; i++)
 	                {
-	                    mark_abo(preds[j][i]->next[i]);
+						if(is_marked_ref(preds[j][i]->next[i]))
+						{
+							for (h = 0; h < i ; h++)
+							{
+								UNMARK(preds[j][i]->next[i]);										
+							}
+							goto abortAndRetry;
+						}
 	                    MARK(preds[j][i]->next[i]);
 	                }
 
@@ -627,8 +643,8 @@ printf("different headddd \n");
 	            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
 	#endif	// USE_TRIE 
 	       
-	        goto retry_update;
-	    } */
+	        goto abortAndRetry;
+	    } 
 
 
 	    
@@ -642,17 +658,17 @@ printf("different headddd \n");
 	                    for (i = 0; i < new_node[j][0]->level; i++)
 	                    {
 	                        new_node[j][0]->next[i] = new_node[j][1];
-	                        new_node[j][1]->next[i] = (n[j]->next[i]);
+	                        new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
 	                    }
 	                    for (; i < new_node[j][1]->level; i++)
-	                        new_node[j][1]->next[i] = (n[j]->next[i]);
+	                        new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
 	                }
 	                else
 	                {   
 	                    for (i = 0; i < new_node[j][1]->level; i++)
 	                    {
 	                        new_node[j][0]->next[i] = new_node[j][1];
-	                        new_node[j][1]->next[i] = (n[j]->next[i]);
+	                        new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
 	                    }
 	                    for (; i < new_node[j][0]->level; i++)
 	                        new_node[j][0]->next[i] = succs[j][i];
@@ -662,9 +678,11 @@ printf("different headddd \n");
 	            {
 	                for (i = 0; i < new_node[j][0]->level; i++)
 	                {
-	                    new_node[j][0]->next[i] = (n[j]->next[i]);
+	                    new_node[j][0]->next[i] = get_unmarked_ref(n[j]->next[i]);
 	                }
 	            }
+			new_node[j][0]->live = 1;
+			new_node[j][1]->live = 1;
 	            // Unlock the predecessors to the new nodes
 	            for(i=0; i < new_node[j][0]->level; i++)
 	            {
@@ -676,10 +694,7 @@ printf("different headddd \n");
 	                    preds[j][i]->next[i] = new_node[j][1];
 	                }
 
-
-				
-			new_node[j][0]->live = 1;
-			new_node[j][1]->live = 1;
+	            
 				//Default lock settings
 				new_node[j][0]->lock = 0;
 				new_node[j][0]->sync_vars[0] = 0;
@@ -689,10 +704,12 @@ printf("different headddd \n");
 					new_node[j][1]->lock = 0;
 					new_node[j][1]->sync_vars[0] = 0;
 	            }
-			n[j]->live = 0;
 	        }
 
 			OrderedLock_Release( &nLockOrder[j],n[j]->sync_vars );
+
+			unlockPredForUpdate( preds[j], highestLocked, predsLockOrder[j]);
+			
 	        if(changed[j])
 	        {
 	            deallocate_node(n[j], ptst);
@@ -703,15 +720,21 @@ printf("different headddd \n");
 	            deallocate_node(new_node[j][0], ptst);
 	            deallocate_node(new_node[j][1], ptst);
 	        }    
+
+			goto end;
+
+			abortAndRetry:
+			{
+				unlockPredForUpdate( preds[j], highestLocked, predsLockOrder[j]);
+				goto retry_update;
+			}
+
+			end:
+				printf("lala\n");
 		}
 		else
 		{
 			printf("isMarked = %d|| (!n[j]->isMarked ==  %d && n[j]->live ==%d) ",isMarked,!n[j]->isMarked , n[j]->live);
-			#ifdef	USE_TRIE
-		            // deallocate the tries 
-		            trie_destroy(&new_node[j][0]->trie, ptst);
-		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-				#endif	// USE_TRIE 
 			goto retry_update;
 		}
 
@@ -719,8 +742,6 @@ printf("different headddd \n");
     critical_exit(ptst);
     return 0;
 }
-
-
 
 setval_t set_remove(set_t *l, setkey_t k)
 {
