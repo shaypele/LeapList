@@ -12,11 +12,11 @@ public class Test {
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
-		int arrSize = 600;
+		int arrSize = 6000;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
-			arrRand [i] = Math.abs(rand.nextLong()); 
+			arrRand [i] = Math.abs(rand.nextInt()); 
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
@@ -76,7 +76,7 @@ public class Test {
 			
 			System.out.println(" Total number of items before delete is " + totItems);
 	     
-	    threadRem1.start();
+	/*    threadRem1.start();
 	    threadRem2.start();
 	    threadRQ.start();
 	    try{
@@ -84,7 +84,7 @@ public class Test {
 	    	threadRem2.join();
 	    	threadRQ.join();
 	    }
-	    catch (InterruptedException e) { };
+	    catch (InterruptedException e) { };*/
 	      
 	      long end = System.nanoTime();
 	      
@@ -130,9 +130,9 @@ public class Test {
 	
 	public static void main(String[] args) {
 		
-		for (int i=0 ; i < 10 ; i ++){
+		
 			doTest();
-		}
+
 	}
 
 }

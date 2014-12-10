@@ -10,7 +10,7 @@ import utils.LeapSet;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 100;
+	static final int NODE_SIZE = 60;
 	
 	LeapNode head;
 	LeapNode tail;
@@ -18,7 +18,7 @@ public class LeapList {
 		head = new LeapNode (true, Long.MIN_VALUE, Long.MIN_VALUE, 0, MAX_LEVEL, null);
 		tail = new LeapNode (true, Long.MAX_VALUE, Long.MAX_VALUE, 0, MAX_LEVEL, null);
 		for (int i = 0; i < MAX_LEVEL; i++){
-			head.setNext( i, tail);
+			head.next[i] =  tail;
 		}
 	}
 	
@@ -36,8 +36,8 @@ public class LeapList {
 		restartLook = false;
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
-				x_next = x.getNext(i);
-				if (x_next.Marked.get()|| !x_next.live.get())
+				x_next = x.next[i];
+				if (x_next.Marked|| !x_next.live)
                 {
                     restartLook = true;
                     break;
@@ -100,11 +100,11 @@ public class LeapList {
 	    nodesToIterate.add(n);	
 	    while (high>n.high)
 	    {
-	    	if (!n.live.get()){
+	    	if (!n.live){
     			 break;
     		 }
-	    	if (n.getNext(0) != null){
- 	    		n = n.getNext(0);
+	    	if (n.next[0] != null){
+ 	    		n = n.next[0];
  	    		nodesToIterate.add(n);
  	    	}
 	    }

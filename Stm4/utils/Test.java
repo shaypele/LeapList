@@ -24,9 +24,9 @@ public class Test {
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
 		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
 		TestThread thread3 = new TestThread( db , 4 , arrRand, arrSize * 2 /3, arrSize );
-		TestThread threadRem1 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
-		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
-		TestThread threadRem3 = new TestThread( db , 5 , arrRand, 0 , arrSize / 3);
+		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
+		TestThread threadRem3 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
+		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
 		long start = System.nanoTime();
 		
 		thread1.start();
@@ -79,16 +79,16 @@ public class Test {
 			
 			System.out.println(" Total number of items before delete is " + totItems);
 	     
-	 /*   threadRem1.start();
-	    threadRem2.start();
+		threadRQ.start();
+		threadRem2.start();
 	    threadRem3.start();
 	    try{
-	    	threadRem1.join();
+	    	threadRQ.join();
 	    	threadRem2.join();
 	    	threadRem3.join();
 	    }
 	    catch (InterruptedException e) { };
-	      */
+	      
 	      long end = System.nanoTime();
 	      
 	      System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");

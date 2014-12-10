@@ -10,7 +10,7 @@ import utils.Trie;
 
 public class LeapNode {
 	volatile boolean live ;
-	volatile boolean[] lives = new boolean[LeapList.MAX_LEVEL];
+	//volatile boolean[] lives = new boolean[LeapList.MAX_LEVEL];
 	volatile boolean[] Marks = new boolean[LeapList.MAX_LEVEL];
 	volatile public long low;
 	volatile public long high;
@@ -44,7 +44,7 @@ public class LeapNode {
 	public LeapNode (){
 		for (int i = 0 ; i <LeapList.MAX_LEVEL ; i ++ ){
 			//next[i] = new LeapNode();
-			lives[i] = false;
+		//	lives[i] = false;
 			Marks[i]= false;
 		}
 			

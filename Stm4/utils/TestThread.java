@@ -71,8 +71,10 @@ public class TestThread extends Thread {
 			break;
 		case 5:
 			removeRand();
+			break;
 		case 6:
 			getRQ();
+			break;
 		}
 		
 		
@@ -120,13 +122,26 @@ public class TestThread extends Thread {
 	
 	private void getRQ() {
 		LeapList list0 = db.GetListByIndex(0);
-		int cell1,cell2;
+		int cell1,cell2,high,low;
 		Random rand = new Random();
-		cell1 = rand.nextInt(arrKeys.length );
-		for (int i = 0 ; i < 100 ; i++){
-			cell2 = rand.nextInt(arrKeys.length - cell1) + cell1;
-			db.RangeQuery(list0, cell1, cell2);
+		cell1 = rand.nextInt();
+		cell2 = rand.nextInt();
+			
+		if(cell1>cell2){
+			high = cell1;
+			low=cell2;
 		}
+		else {
+			high = cell2;
+			low=cell1;
+		}
+		
+			System.out.println(" Range between: " + low + "  and  " + high);
+			Object[] arr =	db.RangeQuery(list0, low, high);
+			
+			for (Object obj : arr){
+				System.out.println(" Item Is " + obj.toString() + "\n");
+			}
 		
 	}
 

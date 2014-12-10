@@ -256,7 +256,7 @@ public class LeapListDB {
         }
 
 	}
-	
+
 	void updateRelease (int size, LeapNode[][] pa, LeapNode[][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight, boolean[] split,
 									boolean[] changed,int j){
 		
@@ -316,11 +316,6 @@ public class LeapListDB {
                 }
             }
             
-                      
-          //  for(int k=0 ; k<maxHeight[j] ;k++){
-            //	pa[j][k].Marks[k].set(false);
-         //   }
-            //n[j].Marked.getAndSet(false);
             newNode[j][0].live = true;
             if (split[j]){
             	
@@ -348,187 +343,202 @@ public class LeapListDB {
 		        keys[j]+=2; // Avoid sentinel
 		    }
 		    do{
-		    	stopLoop=false;
-			    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed);
-			    try{
-			    RemoveLT(size,pa,na,n,oldNode,merge,changed,stopLoop);
-			    }
-			    catch(TransactionException e){
-			    	stopLoop = false;
-			    	continue;
-			    }
-			    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed);
+		    	for(j=0; j<size; j++)
+		        {
+			    	stopLoop=true;
+				    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed,j);
+				    try
+				    {
+				    	RemoveLT(size,pa,na,n,oldNode,merge,changed,stopLoop,j);
+				    }
+				    catch(TransactionException e)
+				    {
+				    	stopLoop = false;
+				    	continue;
+				    }
+				    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed,j);
+		        }
 		    }while(!stopLoop);
 	}
 	
-	@Atomic
+	@Atomic(retries = 64)
 	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
 			LeapNode[] n, LeapNode[][] oldNode, boolean[] merge,
-			boolean[] changed,boolean stopLoop) {/*
+			boolean[] changed,boolean stopLoop, int j) 
+	{
 		int i=0;
-		for(int j=0; j<MAX_ROW; j++)
+        if(changed[j])
         {
-            if(changed[j])
+            if (!oldNode[j][0].live)
             {
-                if (!oldNode[j][0].live.get())
-                    throw new TransactionException();
-
-                if (merge[j] && !oldNode[j][1].live.get())
+            	throw new TransactionException();
+            }
+            if (merge[j] && !oldNode[j][1].live)
+            {
+            	throw new TransactionException();
+            }
+            
+            for(i = 0; i < oldNode[j][0].level;i++)
+            {
+                if (pa[j][i].getNext(i) != oldNode[j][0]) 
+                {
                 	throw new TransactionException();
-
-                for(i = 0; i < oldNode[j][0].level;i++)
+                }
+                if (!(pa[j][i].live)) 
                 {
-                    if (pa[j][i].getNext(i) != oldNode[j][0]) {
-                    	throw new TransactionException();
-                    }
-                    if (!(pa[j][i].live.get())) {
-                    	throw new TransactionException();
-                    }
-                    if (oldNode[j][0].getNext(i) != null){
-                    	if (!oldNode[j][0].getNext(i).live.get()){
-                    		throw new TransactionException();
-                    	}
-                    }
+                	throw new TransactionException();
                 }
-
-
-                if (merge[j])
-                {   
-                    // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
-                    if (oldNode[j][0].getNext(0) != oldNode[j][1])
-                    	throw new TransactionException();
-
-                    if (oldNode[j][1].level > oldNode[j][0].level)
-                    {   
-                        // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
-                        for (i = 0; i < oldNode[j][0].level; i++)
-                        {
-                            if (oldNode[j][1].getNext(i)!=null){
-                            	if (!oldNode[j][1].getNext(i).live.get()) {
-                            		throw new TransactionException();
-                            	}
-                            }
-                        }
-                        // For the higher part, we need to check also the pa of that part
-                        for (; i < oldNode[j][1].level; i++)
-                        {
-                            if (pa[j][i].getNext(i) != oldNode[j][1]) {
-                            	throw new TransactionException();
-                            }
-                            if (!(pa[j][i].live.get())) {
-                            	throw new TransactionException();
-                            }
-                            if (oldNode[j][1].getNext(i)!=null) {
-                            	if (!oldNode[j][1].getNext(i).live.get()){
-                            		throw new TransactionException();
-                            	}
-                            }
-                        }
-
-                    }
-                    else // oldNode[0] is higher than oldNode[1], just check the next pointers of oldNode[1]
-                    {
-                        for (i = 0; i < oldNode[j][1].level; i++)
-                        {
-                            if (oldNode[j][1].getNext(i)!=null){
-                            	if (!oldNode[j][1].getNext(i).live.get()){
-                            		throw new TransactionException();
-                            	}
-                            }
-                        }
-                    }
-                }
-
-                // Lock the pointers to the next nodes
-                if(merge[j])
+                if (oldNode[j][0].getNext(i) != null)
                 {
-                    for(i = 0; i < oldNode[j][1].level; i++)
-                    {
-                        if (oldNode[j][1].getNext(i) != null)
-                        {   
-                            if(!oldNode[j][1].getNext(i).Marked.compareAndSet(false, true)) {
-                            	throw new TransactionException();
-                            }
-                        }
-                    }
-                    for(i = 0; i < oldNode[j][0].level; i++)
-                    {
-                        if (oldNode[j][0].getNext(i) != null)
-                        {   
-                            if(!oldNode[j][0].getNext(i).Marked.compareAndSet(false, true)) {
-                            	throw new TransactionException();
-                            }
-                        }
-                    }
-                }
-                else
-                {   
-                    for(i = 0; i < oldNode[j][0].level; i++)
-                    {
-                        if (oldNode[j][0].getNext(i) != null)
-                        {   
-                            if(!oldNode[j][0].getNext(i).Marked.compareAndSet(false, true)) {
-                            	throw new TransactionException();
-                            }
-                        }
-                    }
-                }
-
-                // Lock the pointers to the current node
-                for(i = 0; i < n[j].level; i++)
-                {
-                    if(!pa[j][i].getNext(i).Marked.compareAndSet(false, true)){
-                    	throw new TransactionException();
-                    }
-                }
-
-                oldNode[j][0].live.getAndSet(false);
-                if (merge[j]){
-                    oldNode[j][1].live.getAndSet(false);	
-                    
+                	if (!oldNode[j][0].getNext(i).live)
+                	{
+                		throw new TransactionException();
+                	}
                 }
             }
+
+
+            if (merge[j])
+            {   
+                // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
+                if (oldNode[j][0].getNext(0) != oldNode[j][1])
+                	throw new TransactionException();
+
+                if (oldNode[j][1].level > oldNode[j][0].level)
+                {   
+                    // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
+                    for (i = 0; i < oldNode[j][0].level; i++)
+                    {
+                        if (oldNode[j][1].getNext(i)!=null){
+                        	if (!oldNode[j][1].getNext(i).live) {
+                        		throw new TransactionException();
+                        	}
+                        }
+                    }
+                    // For the higher part, we need to check also the pa of that part
+                    for (; i < oldNode[j][1].level; i++)
+                    {
+                        if (pa[j][i].getNext(i) != oldNode[j][1]) {
+                        	throw new TransactionException();
+                        }
+                        if (!(pa[j][i].live)) {
+                        	throw new TransactionException();
+                        }
+                        if (oldNode[j][1].getNext(i)!=null) {
+                        	if (!oldNode[j][1].getNext(i).live){
+                        		throw new TransactionException();
+                        	}
+                        }
+                    }
+
+                }
+                else // oldNode[0] is higher than oldNode[1], just check the next pointers of oldNode[1]
+                {
+                    for (i = 0; i < oldNode[j][1].level; i++)
+                    {
+                        if (oldNode[j][1].getNext(i)!=null){
+                        	if (!oldNode[j][1].getNext(i).live){
+                        		throw new TransactionException();
+                        	}
+                        }
+                    }
+                }
+            }
+
+            // Lock the pointers to the next nodes
+            if(merge[j])
+            {
+                for(i = 0; i < oldNode[j][1].level; i++)
+                {
+                    if (oldNode[j][1].getNext(i) != null)
+                    {   
+                        if(oldNode[j][1].Marks[i] == true) {
+                        	throw new TransactionException();
+                        }
+                        oldNode[j][1].Marks[i] = true;
+                    }
+                }
+                for(i = 0; i < oldNode[j][0].level; i++)
+                {
+                    if (oldNode[j][0].getNext(i) != null)
+                    {   
+                        if(oldNode[j][0].Marks[i] == true) {
+                        	throw new TransactionException();
+                        }
+                        oldNode[j][0].Marks[i] = true;
+                    }
+                }
+            }
+            else
+            {   
+                for(i = 0; i < oldNode[j][0].level; i++)
+                {
+                    if (oldNode[j][0].getNext(i) != null)
+                    {   
+                        if(oldNode[j][0].Marks[i] == true) {
+                        	throw new TransactionException();
+                        }
+                        oldNode[j][0].Marks[i] = true;
+                    }
+                }
+            }
+
+            // Lock the pointers to the current node
+            for(i = 0; i < n[j].level; i++)
+            {
+                if(pa[j][i].Marks[i] == true){
+                	throw new TransactionException();
+                }
+                pa[j][i].Marks[i] = true;
+            }
+
+            oldNode[j][0].live=false;
+            if (merge[j])
+            {
+                oldNode[j][1].live=false;	
+            }
         }
-        stopLoop = true;*/
 	}
 
 	private void RemoveReleaseAndUpdate(int size, LeapNode[][] pa,
 			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
-			boolean[] merge, boolean[] changed) {/*
+			boolean[] merge, boolean[] changed, int j) {
 
-		 for(int j=0; j<size; j++)
-		    {
-		        if(changed[j])
-		        {
-		            // Update the next pointers of the new node
-		            int i=0;
-		            if (merge[j])
-		            {   
-		                for (; i < oldNode[j][1].level; i++){
-		                	n[j].setNext(i, oldNode[j][1].getNext(i));
-		                	oldNode[j][1].getNext(i).Marked.set(false);
-		                }
-		            }
-		            for (; i < oldNode[j][0].level; i++){
-		            	n[j].setNext(i, oldNode[j][0].getNext(i));
-		            	oldNode[j][0].getNext(i).Marked.set(false);
-		            }
-		            
-		            for(i = 0; i < n[j].level; i++)
-		            {   
-		            	 pa[j][i].setNext(i, n[j]);
-		            }
-		            n[j].live.set(true);
-		            if(merge[j])
-		            	oldNode[j][1].trie=null;
-
-		            oldNode[j][0].trie=null;
-		        }
-		        else
-		        {
-		            n[j].trie=null;
-		        }    
-		    }*/
+	        if(changed[j])
+	        {
+	            // Update the next pointers of the new node
+	            int i=0;
+	            if (merge[j])
+	            {   
+	                for (; i < oldNode[j][1].level; i++)
+	                {
+	                	n[j].setNext(i, oldNode[j][1].getNext(i));
+	                	oldNode[j][1].Marks[i] =false;
+	                }
+	            }
+	            for (; i < oldNode[j][0].level; i++){
+	            	n[j].setNext(i, oldNode[j][0].getNext(i));
+	            	oldNode[j][0].Marks[i] =false;
+	            }
+	            
+	            for(i = 0; i < n[j].level; i++)
+	            {   
+	            	 pa[j][i].setNext(i, n[j]);
+	            	 pa[j][i].Marks[i] =false;
+	            }
+	            
+	            n[j].live = true;
+	            
+	            if(merge[j])
+	            {
+	            	oldNode[j][1].trie=null;
+	            }
+	            oldNode[j][0].trie=null;
+	        }
+	        else
+	        {
+	            n[j].trie=null;
+	        }    
 	}
 	
 	Object find(LeapNode node,long key){
@@ -549,12 +559,11 @@ public class LeapListDB {
 
 	void RemoveSetup(LeapList[] ll, long[] keys,int size, LeapNode[][] pa,
 			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
-			boolean[] merge, boolean[] changed) 
-	{/*
+			boolean[] merge, boolean[] changed, int j) 
+	{
 		boolean lastRemove=false;
 		int [] total = new int[size];
-		for(int j=0; j<size; j++)
-	    {
+		
 			do{
 				lastRemove=false;
 		        merge[j] = false;
@@ -566,19 +575,22 @@ public class LeapListDB {
 		            changed[j] = false;
 		            continue;
 		        }
-		        total[j] = oldNode[j][0].count;
+		        
 		        do
 		        {
 		            oldNode[j][1] = oldNode[j][0].getNext(0);
-		            if(!oldNode[j][0].live.get()){
+		            if(!oldNode[j][0].live){
 		            	lastRemove=true;
 		            	break;
 		            }
-		        } while (oldNode[j][1].Marked.get());
-		        //if(lastRemove  || !oldNode[j][0].live){
-		        if(lastRemove ){
+		        } while (oldNode[j][0].Marks[0]);
+		        if(lastRemove  || !oldNode[j][0].live){
+		        	lastRemove=true;
 		        	continue;
 		        }
+		        
+		        total[j] = oldNode[j][0].count;
+		        
 		        if(oldNode[j][1] != null)
 		        {
 		            total[j] = total[j] + oldNode[j][1].count;
@@ -590,7 +602,7 @@ public class LeapListDB {
 		        n[j].level = oldNode[j][0].level;    
 		        n[j].low   = oldNode[j][0].low;
 		        n[j].count = oldNode[j][0].count;
-		        n[j].live.getAndSet(false);
+		        n[j].live = false;
 	
 		        if(merge[j])// this part of code is not in the paper.
 		        {
@@ -606,19 +618,18 @@ public class LeapListDB {
 		            n[j].high = oldNode[j][0].high;
 		        }
 		        
-		        if(!oldNode[j][0].live.get()){
+		        if(!oldNode[j][0].live){
 	            	lastRemove=true;
 	            	continue;
 	            }
 		        
-		        if (merge[j] && !oldNode[j][1].live.get()){
+		        if (merge[j] && !oldNode[j][1].live){
 		        	lastRemove=true;
 	            	continue;
 		        }
 		        changed[j] = remove(oldNode[j], n[j], keys[j], merge[j]);
 			
 			}while(lastRemove);
-	    }*/
 	}
 	
 	private boolean remove(LeapNode[] old_node, LeapNode n,
