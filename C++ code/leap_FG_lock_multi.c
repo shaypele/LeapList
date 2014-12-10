@@ -166,16 +166,10 @@ restart_look:
                 if (!x_next->live)
                 {
 		      
-		      printf("searching is marked = %d\n",x_next->isMarked);
-		      printf("next is = %d\n",x_next->next[0] );
-			printf("level is = %d\n",i );
-		      printf("MAX LEVEL IS = %d\n",x->level - 1 );
-			counter++;
-			if (counter == 20){
-				x->next[i] = x->next[i-1];
-				break;
-}
-				
+				      printf("searching is marked = %d\n",x_next->isMarked);
+				      printf("next is = %d\n",x_next->next[0] );
+					printf("level is = %d\n",i );
+				      printf("MAX LEVEL IS = %d\n",x->level - 1 );
                     goto restart_look;
                 }
 
@@ -372,6 +366,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
             {
                 if(overwrite)
                 {
+					new_node[m]->data[i].key = n->data[j].key;
                     new_node[m]->data[i].value = v;
                     changed = 1;
 #ifdef	USE_TRIE
@@ -521,10 +516,15 @@ printf("different headddd \n");
 
 			if ( !isMarked )
 			{
-				OrderedLock_Acquire(&nLockOrder[j], n[j]->lock , n[j]->sync_vars );
+				OrderedLock_Acquire(&nLockOrder[j], &n[j]->lock , n[j]->sync_vars );
 				if (n[j]->isMarked){
 					OrderedLock_Release( &nLockOrder[j],n[j]->sync_vars );
 					printf("Try to lock and is marked, then release lock and try again\n");
+					#ifdef	USE_TRIE
+			            // deallocate the tries 
+			            trie_destroy(&new_node[j][0]->trie, ptst);
+			            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+					#endif	// USE_TRIE 
 					goto retry_update;
 				}
 				lastLockedNode = n[j];
@@ -552,7 +552,7 @@ printf("different headddd \n");
 				pred = preds[j][level];
 				succ = succs[j][level];
 				if (pred != prevPred){
-					OrderedLock_Acquire(&predsLockOrder[j][level], pred->lock , pred->sync_vars );
+					OrderedLock_Acquire(&predsLockOrder[j][level], &pred->lock , pred->sync_vars );
 					highestLocked = level;
 					prevPred = pred;
 				}
@@ -560,6 +560,11 @@ printf("different headddd \n");
 			}
 			if (!valid){
 				unlockPredForUpdate( preds[j], highestLocked, predsLockOrder[j]);
+				#ifdef	USE_TRIE
+		            // deallocate the tries 
+		            trie_destroy(&new_node[j][0]->trie, ptst);
+		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+				#endif	// USE_TRIE 
  				printf("pred not valid. Pred is marked = %d, next not right %d\n",!pred->isMarked,pred->next[level] == succ);
 				goto retry_update;
 			}	
@@ -660,8 +665,6 @@ printf("different headddd \n");
 	                    new_node[j][0]->next[i] = (n[j]->next[i]);
 	                }
 	            }
-			new_node[j][0]->live = 1;
-			new_node[j][1]->live = 1;
 	            // Unlock the predecessors to the new nodes
 	            for(i=0; i < new_node[j][0]->level; i++)
 	            {
@@ -673,7 +676,10 @@ printf("different headddd \n");
 	                    preds[j][i]->next[i] = new_node[j][1];
 	                }
 
-	            
+
+				
+			new_node[j][0]->live = 1;
+			new_node[j][1]->live = 1;
 				//Default lock settings
 				new_node[j][0]->lock = 0;
 				new_node[j][0]->sync_vars[0] = 0;
@@ -701,6 +707,11 @@ printf("different headddd \n");
 		else
 		{
 			printf("isMarked = %d|| (!n[j]->isMarked ==  %d && n[j]->live ==%d) ",isMarked,!n[j]->isMarked , n[j]->live);
+			#ifdef	USE_TRIE
+		            // deallocate the tries 
+		            trie_destroy(&new_node[j][0]->trie, ptst);
+		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+				#endif	// USE_TRIE 
 			goto retry_update;
 		}
 

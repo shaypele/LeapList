@@ -69,8 +69,10 @@ public class TestThread extends Thread {
 			break;
 		case 5:
 			removeRand();
+			break;
 		case 6:
 			getRQ();
+			break;
 		}
 		
 		
