@@ -173,7 +173,7 @@ public class TestThread extends Thread {
 		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListRemove(new LeapList[] {list0,list1}, new long[]{arrKeys[i],arrKeys[i] },2);
+			db.leapListRemove(db.LeapLists, new long[]{arrKeys[i],arrKeys[i] ,arrKeys[i],arrKeys[i]},4);
 		}
 		
 	}
@@ -185,7 +185,7 @@ public class TestThread extends Thread {
 		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListUpdate(new LeapList[] {list0,list1}, new long[]{arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i]},2);
+			db.leapListUpdate(db.LeapLists, new long[]{arrKeys[i], arrKeys[i],arrKeys[i],arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i],arrKeys[i],arrKeys[i]},4);
 		}
 		
 	}

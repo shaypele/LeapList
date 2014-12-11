@@ -13,7 +13,7 @@ import utils.Trie;
 
 public class LeapListDB {
 	public static final  int MAX_ROW = 4;
-	LeapList[] LeapLists = new LeapList[MAX_ROW];
+	public LeapList[] LeapLists = new LeapList[MAX_ROW];
 
 	
 	public LeapListDB () {
@@ -197,7 +197,7 @@ public class LeapListDB {
 	}
 	int Retry = 0;
 	
-	@Atomic(retries=64)
+	@Atomic(retries=1)
 	void updateLT (int size, LeapNode [][] pa, LeapNode [][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight,
 								boolean[] changed,Boolean stopLoop,int j) throws TransactionException  {
 		int i;
@@ -367,7 +367,7 @@ public class LeapListDB {
 	        }
 	}
 	
-	@Atomic(retries = 64)
+	@Atomic(retries = 1)
 	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
 			LeapNode[] n, LeapNode[][] oldNode, boolean[] merge,
 			boolean[] changed,boolean stopLoop, int j) 

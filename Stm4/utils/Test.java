@@ -16,7 +16,7 @@ public class Test {
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
 		LeapList list1 = db.GetListByIndex(1);
-		int arrSize = 600;
+		int arrSize = 1200;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
@@ -90,12 +90,12 @@ public class Test {
 	      }
 			System.out.println(" Total number of items before delete is " + totItems);*/
 	     
-		threadRQ.start();
+	//	threadRQ.start();
 		threadRem2.start();
 	    threadRem3.start();
 	    threadLook1.start();
 	    try{
-	    	threadRQ.join();
+	   // 	threadRQ.join();
 	    	threadRem2.join();
 	    	threadRem3.join();
 	    	threadLook1.join();

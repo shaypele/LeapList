@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.deuce.Atomic;
 
-import utils.LeapSet;
 
 
 public class LeapList {
@@ -18,7 +17,7 @@ public class LeapList {
 		head = new LeapNode (true, Long.MIN_VALUE, Long.MIN_VALUE, 0, MAX_LEVEL, null);
 		tail = new LeapNode (true, Long.MAX_VALUE, Long.MAX_VALUE, 0, MAX_LEVEL, null);
 		for (int i = 0; i < MAX_LEVEL; i++){
-			head.next[i] =  tail;
+			head.setNext( i, tail);
 		}
 	}
 	
@@ -26,27 +25,34 @@ public class LeapList {
 		return this.head;
 	}
  	
-	
+	@Atomic()
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
+		boolean   xRef = false; 
 		boolean restartLook = false;
 		do{
-		x = this.head;
+		x = head;
+		xRef = false; 
 		restartLook = false;
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
-				x_next = x.next[i];
-				if (x_next.Marked|| !x_next.live)
+				x_next = x.getNext(i);
+				/*if (x.Marks[i] || !x_next.live)
                 {
                     restartLook = true;
                     break;
-                }
+                }*/
 				if (x_next.high >= key)
 					break;
 				else
+				{
 					x = x_next;
+					xRef = x.Marks[i];
+				}
 			}
+		  if (xRef ||  x.Marks[i])
+			  restartLook = true;
 			if(restartLook == true){
 				break;
 			}
@@ -60,7 +66,7 @@ public class LeapList {
 		return x_next;
 	}
 	
-	@Atomic
+	//@Atomic
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -68,10 +74,17 @@ public class LeapList {
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
 		LeapNode ret = searchPredecessor( key, pa, na);
-		index = ret.trie.trieFindVal(key);
-		if (index != -1)
+		try
 		{
-			retVal =  ret.data[index].value;
+            index = ret.trie.trieFindVal(key);
+            if (index != -1)
+            {
+                return ret.data[index].value;
+            }
+		}
+		catch(NullPointerException e)
+		{
+			return null;
 		}
 		return retVal;
 	}
@@ -92,7 +105,7 @@ public class LeapList {
 	    return rangeSet.toArray();
 	}
 
-	@Atomic
+	@Atomic(retries=64)
 	private void getAndAddSucssesor(ArrayList<LeapNode> nodesToIterate, LeapNode n,
 			long low,long high) {
 		nodesToIterate.clear();
@@ -103,8 +116,8 @@ public class LeapList {
 	    	if (!n.live){
     			 break;
     		 }
-	    	if (n.next[0] != null){
- 	    		n = n.next[0];
+	    	if (n.getNext(0) != null){
+ 	    		n = n.getNext(0);
  	    		nodesToIterate.add(n);
  	    	}
 	    }
