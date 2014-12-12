@@ -6,7 +6,6 @@ import java.util.Random;
 
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
-import leapListReg.LeapNode;
 
 
 
@@ -14,8 +13,6 @@ public class Test {
 
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
-		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		int arrSize = 300;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();

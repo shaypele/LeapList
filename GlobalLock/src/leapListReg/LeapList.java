@@ -2,8 +2,6 @@ package leapListReg;
 
 import java.util.ArrayList;
 
-import utils.LeapSet;
-
 
 public class LeapList {
 	static final byte MAX_LEVEL = 10;

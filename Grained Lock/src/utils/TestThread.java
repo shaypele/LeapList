@@ -1,10 +1,12 @@
 package utils;
 
+
+
 import java.util.Random;
 
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
-import leapListReg.LeapNode;
+
 
 public class TestThread extends Thread {
 	
@@ -12,7 +14,7 @@ public class TestThread extends Thread {
 	int funcToRun;
 	long[] arrKeys;
 	int arrStart;
-	int arrEnd;
+	int arrEnd; 
 	
 	public TestThread(LeapListDB db, int funcToRun, long[] arrKeys, int arrStart,int arrEnd){
 		this.db = db;
@@ -73,6 +75,15 @@ public class TestThread extends Thread {
 		case 6:
 			getRQ();
 			break;
+		case 7:
+			LookUp();
+			break;
+		case 8 :
+			insertRand2();
+			break;
+		case 9 :
+			insertRand3();
+			break;
 		}
 		
 		
@@ -118,32 +129,103 @@ public class TestThread extends Thread {
 		System.out.println("XXXXXX");*/
 	}
 	
-	private void getRQ() {
-		LeapList list0 = db.GetListByIndex(0);
-		int cell1,cell2;
+	private void LookUp() {
+		
 		Random rand = new Random();
-		cell1 = rand.nextInt(arrKeys.length );
-		for (int i = 0 ; i < 100 ; i++){
-			cell2 = rand.nextInt(arrKeys.length - cell1) + cell1;
-			db.RangeQuery(list0, cell1, cell2);
+		LeapList list0 = db.GetListByIndex(0);
+		long look1 = rand.nextInt(Integer.MAX_VALUE);
+		long look2 = arrKeys[20];
+		System.out.println("*****************************    " + db.lookUp(list0, look1));
+		System.out.println("*****************************    " + db.lookUp(list0, look2));
+	}
+
+	private void getRQ() {
+		
+		Random rand = new Random();
+		LeapList list0 = db.GetListByIndex(0);
+		LeapList list1 = db.GetListByIndex(1);
+		int cell1,cell2,high,low;
+		cell1 = rand.nextInt(Integer.MAX_VALUE);
+		cell2 = rand.nextInt(Integer.MAX_VALUE);
+			
+		if(cell1>cell2){
+			high = cell1;
+			low=cell2;
 		}
+		else {
+			high = cell2;
+			low=cell1;
+		}
+		
+			System.out.println(" Range in list 0 between: " + low + "  and  " + high);
+			Object[] arr =	db.RangeQuery(list0, low, high);
+			
+			for (Object obj : arr){
+				System.out.println(" Item Is " + obj.toString() + "\n");
+			}
+			System.out.println(" Range in list 1 between: " + low + "  and  " + high);
+			 arr =	db.RangeQuery(list1, low, high);
+			
+			for (Object obj : arr){
+				System.out.println(" Item Is " + obj.toString() + "\n");
+			}
 		
 	}
 
 	private void removeRand() {
+		
+		
 		LeapList list0 = db.GetListByIndex(0);
+		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListRemove(new LeapList[] {list0}, new long[]{arrKeys[i], },1);
+			db.leapListRemove(db.LeapLists, new long[]{arrKeys[i],arrKeys[i] ,arrKeys[i],arrKeys[i]},4);
 		}
 		
 	}
 
-	private void insertRand() {
-		LeapList list0 = db.GetListByIndex(0);
+	
+	private void insertRand2() {
+
+		
+		LeapList[] lists = new LeapList[10];
+		
+		for (int i = 0; i < lists.length; i++) {
+			lists[i] = db.GetListByIndex(i);
+		}
+		
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListUpdate(new LeapList[] {list0}, new long[]{arrKeys[i], }, new Object[]{arrKeys[i]},1);
+			db.leapListUpdate(new LeapList []{lists[4],lists[5],lists[7],lists[2],lists[0],lists[3],lists[5]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+		}
+	}
+		
+		private void insertRand3() {
+
+			LeapList[] lists = new LeapList[10];
+			
+			for (int i = 0; i < lists.length; i++) {
+				lists[i] = db.GetListByIndex(i);
+			}
+			
+			for (int i = arrStart ; i < arrEnd ; i++){
+				
+				db.leapListUpdate(new LeapList []{lists[2],lists[3],lists[3],lists[8],lists[9],lists[5],lists[0]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+			}
+		
+	}
+	
+	private void insertRand() {
+
+		LeapList[] lists = new LeapList[10];
+		
+		for (int i = 0; i < lists.length; i++) {
+			lists[i] = db.GetListByIndex(i);
+		}
+		
+		for (int i = arrStart ; i < arrEnd ; i++){
+			
+			db.leapListUpdate(new LeapList []{lists[0],lists[1],lists[2],lists[3],lists[6],lists[5],lists[6]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
 		}
 		
 	}

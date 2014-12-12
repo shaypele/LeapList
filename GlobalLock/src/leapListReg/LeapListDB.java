@@ -9,8 +9,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class LeapListDB {
-	static final  int MAX_ROW = 4;
-	LeapList[] LeapLists = new LeapList[MAX_ROW];
+	static final  int MAX_ROW = 10;
+	public LeapList[] LeapLists = new LeapList[MAX_ROW];
 	
 	private final ReentrantLock dbLock = new ReentrantLock();
 

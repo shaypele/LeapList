@@ -6,8 +6,8 @@ import java.util.Random;
 import utils.Trie;
 
 public class LeapListDB {
-	static final  int MAX_ROW = 4;
-	volatile LeapList[] LeapLists = new LeapList[MAX_ROW];
+	static final  int MAX_ROW = 10;
+	public volatile LeapList[] LeapLists = new LeapList[MAX_ROW];
 	
 	public LeapListDB () {
 		for (int i=0; i < MAX_ROW ; i++)

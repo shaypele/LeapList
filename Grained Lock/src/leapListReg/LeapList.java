@@ -1,9 +1,6 @@
 package leapListReg;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicReference;
-
-import utils.LeapSet;
 
 
 public class LeapList {
