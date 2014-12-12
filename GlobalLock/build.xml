@@ -4,7 +4,7 @@
 	
 	<target name="compile" depends="clean">
 		<mkdir dir="${build}"/>
-		<javac destdir="${build}" source="1.8" includeantruntime="false" optimize="off">
+		<javac destdir="${build}" source="1.7" includeantruntime="false" optimize="off">
 		<src path="${src}"/>
 		</javac>
 	</target>
