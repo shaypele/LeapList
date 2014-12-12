@@ -14,7 +14,7 @@ public class TestThread extends Thread {
 	int funcToRun;
 	long[] arrKeys;
 	int arrStart;
-	int arrEnd;
+	int arrEnd; 
 	
 	public TestThread(LeapListDB db, int funcToRun, long[] arrKeys, int arrStart,int arrEnd){
 		this.db = db;
@@ -77,6 +77,12 @@ public class TestThread extends Thread {
 			break;
 		case 7:
 			LookUp();
+			break;
+		case 8 :
+			insertRand2();
+			break;
+		case 9 :
+			insertRand3();
 			break;
 		}
 		
@@ -178,14 +184,48 @@ public class TestThread extends Thread {
 		
 	}
 
-	private void insertRand() {
+	
+	private void insertRand2() {
 
 		
-		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
+		LeapList[] lists = new LeapList[10];
+		
+		for (int i = 0; i < lists.length; i++) {
+			lists[i] = db.GetListByIndex(i);
+		}
+		
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
-			db.leapListUpdate(db.LeapLists, new long[]{arrKeys[i], arrKeys[i],arrKeys[i],arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i],arrKeys[i],arrKeys[i]},4);
+			db.leapListUpdate(new LeapList []{lists[4],lists[5],lists[7],lists[2],lists[0],lists[3],lists[5]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+		}
+	}
+		
+		private void insertRand3() {
+
+			LeapList[] lists = new LeapList[10];
+			
+			for (int i = 0; i < lists.length; i++) {
+				lists[i] = db.GetListByIndex(i);
+			}
+			
+			for (int i = arrStart ; i < arrEnd ; i++){
+				
+				db.leapListUpdate(new LeapList []{lists[2],lists[3],lists[3],lists[8],lists[9],lists[5],lists[0]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+			}
+		
+	}
+	
+	private void insertRand() {
+
+		LeapList[] lists = new LeapList[10];
+		
+		for (int i = 0; i < lists.length; i++) {
+			lists[i] = db.GetListByIndex(i);
+		}
+		
+		for (int i = arrStart ; i < arrEnd ; i++){
+			
+			db.leapListUpdate(new LeapList []{lists[0],lists[1],lists[2],lists[3],lists[6],lists[5],lists[6]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
 		}
 		
 	}

@@ -16,15 +16,16 @@ public class Test {
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
 		LeapList list1 = db.GetListByIndex(1);
-		int arrSize = 1200;
+		int arrSize = 300;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
 			arrRand [i] = Math.abs(rand.nextInt()); 
 		}
-		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize / 3);
-		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize / 3 ,arrSize * 2 /3);
-		TestThread thread3 = new TestThread( db , 4 , arrRand, arrSize * 2 /3, arrSize );
+		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize /3);
+		TestThread thread2 = new TestThread( db , 8 , arrRand, arrSize /3 ,arrSize * 2/3);
+		TestThread thread3 = new TestThread( db , 9 , arrRand, arrSize * 2/3 ,arrSize);
+		TestThread thread4 = new TestThread( db , 8 , arrRand, arrSize  /2, arrSize );
 		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
 		TestThread threadRem3 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
 		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
@@ -34,18 +35,17 @@ public class Test {
 		thread1.start();
 		thread2.start();
 		thread3.start();
+		//thread4.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
 			thread3.join();
+			//thread4.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
-	      LeapNode[] heads = new LeapNode[2];
-	      heads[0] =list0.GetHeadNode();
-	      heads[1] =list1.GetHeadNode();
 	      
 	      //System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
 	   /*   
@@ -90,7 +90,7 @@ public class Test {
 	      }
 			System.out.println(" Total number of items before delete is " + totItems);*/
 	     
-	//	threadRQ.start();
+	/*	threadRQ.start();
 		threadRem2.start();
 	    threadRem3.start();
 	    threadLook1.start();
@@ -100,7 +100,7 @@ public class Test {
 	    	threadRem3.join();
 	    	threadLook1.join();
 	    }
-	    catch (InterruptedException e) { };
+	    catch (InterruptedException e) { };*/
 	      
 	      long end = System.nanoTime();
 	      /*
@@ -149,9 +149,8 @@ public class Test {
 	}
 	
 	public static void main(String[] args) {
-		
-			doTest();
-		
+			
+		doTest();
 	}
 
 }

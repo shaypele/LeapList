@@ -12,7 +12,7 @@ public class Test {
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
 		LeapList list0 = db.GetListByIndex(0);
-		int arrSize = 6000;
+		int arrSize = 600;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
@@ -76,15 +76,15 @@ public class Test {
 			
 			System.out.println(" Total number of items before delete is " + totItems);
 	     
-	/*    threadRem1.start();
+	    threadRem1.start();
 	    threadRem2.start();
-	    threadRQ.start();
+	  //  threadRQ.start();
 	    try{
 	    	threadRem1.join();
 	    	threadRem2.join();
-	    	threadRQ.join();
+	    	//threadRQ.join();
 	    }
-	    catch (InterruptedException e) { };*/
+	    catch (InterruptedException e) { };
 	      
 	      long end = System.nanoTime();
 	      

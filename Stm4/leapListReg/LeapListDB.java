@@ -12,7 +12,7 @@ import utils.Trie;
 
 
 public class LeapListDB {
-	public static final  int MAX_ROW = 4;
+	public static final  int MAX_ROW = 10;
 	public LeapList[] LeapLists = new LeapList[MAX_ROW];
 
 	
@@ -41,6 +41,8 @@ public class LeapListDB {
 	
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
 		
+		for(int i=0;i< size ; i++)
+		{
 			LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
 			LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
 			LeapNode[] n = new LeapNode[size];
@@ -50,15 +52,15 @@ public class LeapListDB {
 			boolean [] changed = new boolean [size];
 			Boolean stopLoop = true;
 			
-			for(int i = 0; i < size; i++){
-				newNode[i][0] = new LeapNode();
-				newNode[i][1] = new LeapNode();
-				keys[i] += 2 ; // avoid sentinel; 
-			}
-			for(int i=0;i< size ; i++)
-			{
+			
+			keys[i] += 2 ; // avoid sentinel; 
+		
+			
+				
 				do{
 					
+					newNode[i][0] = new LeapNode();
+					newNode[i][1] = new LeapNode();
 					stopLoop = true;
 					updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed,i);
 					try{

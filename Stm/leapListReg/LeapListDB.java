@@ -12,7 +12,7 @@ import utils.Trie;
 
 
 public class LeapListDB {
-	public static final  int MAX_ROW = 4;
+	public static final  int MAX_ROW = 10;
 	public LeapList[] LeapLists = new LeapList[MAX_ROW];
 
 	
@@ -46,7 +46,7 @@ public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int 
 		
 		do{
 			keys = myKeys.clone();
-			 stopLoop = true;
+			stopLoop = true;
 			LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
 			LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
 			LeapNode[] n = new LeapNode[size];
@@ -366,7 +366,7 @@ public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int 
         }while(!stopLoop);
 	}
 	
-	@Atomic(retries = 1)
+	@Atomic(retries = 4)
 	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
 			LeapNode[] n, LeapNode[][] oldNode, boolean[] merge,
 			boolean[] changed,boolean stopLoop, int j) 
