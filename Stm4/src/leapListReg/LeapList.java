@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 import org.deuce.Atomic;
 
+import com.sun.tracing.dtrace.Attributes;
+
 
 
 public class LeapList {
@@ -105,7 +107,7 @@ public class LeapList {
 	    return rangeSet.toArray();
 	}
 
-	@Atomic(retries=64)
+	@Atomic(retries=1)
 	private void getAndAddSucssesor(ArrayList<LeapNode> nodesToIterate, LeapNode n,
 			long low,long high) {
 		nodesToIterate.clear();
