@@ -58,10 +58,10 @@ public class LeapListDB {
 				newNode[i][1] = new LeapNode();
 				keys[i] += 2 ; // avoid sentinel; 
 			}
-			
-			updateSetup (ll, keys, values, size, pa, na, n, newNode, maxHeight, split, changed);
-			updateLT (size, pa, na, n, newNode, maxHeight, changed);
-			updateRelease (size, pa, na, n, newNode, split, changed);
+			for (int i = 0; i < size ; i++){
+				n[i] = updateSetup (ll[i], keys[i], values[i], pa[i], na[i], newNode[i], maxHeight, split, changed, i);
+				updateRelease (pa[i], na[i], n[i], newNode[i], split, changed, i);
+			}
 		} finally {
 			dbLock.unlock();
 		}
@@ -80,25 +80,25 @@ public class LeapListDB {
 		return l;
 	}
 	
-	 void updateSetup (LeapList[] ll, long [] keys, Object [] values, int size, LeapNode[][] pa, LeapNode[][] na, 
-										LeapNode[] n, LeapNode [][] newNode, int [] maxHeight, boolean[] split, boolean[] changed){
+	LeapNode updateSetup (LeapList l, long key, Object value, LeapNode[] pa, LeapNode[] na, 
+									 LeapNode [] newNode, int maxHeight[], boolean [] split, boolean [] changed, int i){
 		
-		for (int i = 0; i < size; i ++){
-			ll[i].searchPredecessor(keys [i], pa[i], na[i]);	
-			n[i] = na[i][0];
-			if (n[i].count == LeapList.NODE_SIZE){
+			LeapNode n = null;
+			l.searchPredecessor(key, pa, na);	
+			n = na[0];
+			if (n.count == LeapList.NODE_SIZE){
 				split[i] = true;
-				newNode[i][1].level = n[i].level;
-				newNode[i][0].level = getLevel();
-				maxHeight[i] = (newNode[i][0].level > newNode[i][1].level) ? newNode[i][0].level: newNode[i][1].level;
+				newNode[1].level = n.level;
+				newNode[0].level = getLevel();
+				maxHeight[i] = (newNode[0].level > newNode[1].level) ? newNode[0].level: newNode[1].level;
 			}
 			else{
 				split[i] = false;
-				newNode[i][0].level = n[i].level;
-				maxHeight[i] = newNode[i][0].level;
+				newNode[0].level = n.level;
+				maxHeight[i] = newNode[0].level;
 			}
-			changed [i] = insert(newNode[i], n[i], keys[i], values[i], split[i]);
-		}
+			changed[i] = insert(newNode, n, key, value, split[i]);
+			return n;
 	}
 	
 	boolean insert (LeapNode[] newNode, LeapNode n, long key, Object val, boolean split){
@@ -181,59 +181,50 @@ public class LeapListDB {
 		return changed;
 	}
 	
-	//runs test for transactional memory multi thread
-	void updateLT (int size, LeapNode [][] pa, LeapNode [][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight,
-								boolean[] changed){
-	}
-	
-	void updateRelease (int size, LeapNode[][] pa, LeapNode[][] na, LeapNode[] n, LeapNode[][] newNode, boolean[] split,
-									boolean[] changed){
-		for (int j = 0; j < size; j++){
+	void updateRelease (LeapNode[] pa, LeapNode[] na, LeapNode n, LeapNode[] newNode, boolean[] split,
+									boolean[] changed, int k){
 			int i = 0;
-			
-			if (changed[j]){
-				if (split[j]){
-					if (newNode[j][1].level > newNode[j][0].level){
-						for (i = 0; i < newNode[j][0].level; i++){
-							newNode[j][0].next[i] = newNode[j][1];
-                            newNode[j][1].next[i] = n[j].next[i];
+			if (changed[k]){
+				if (split[k]){
+					if (newNode[1].level > newNode[0].level){
+						for (i = 0; i < newNode[0].level; i++){
+							newNode[0].next[i] = newNode[1];
+                            newNode[1].next[i] = n.next[i];
 						}
-						 for (; i < newNode[j][1].level; i++)
-	                            newNode[j][1].next[i] = n[j].next[i];
+						 for (; i < newNode[1].level; i++)
+	                            newNode[1].next[i] = n.next[i];
 					}
 					else
                     {   
-                        for (i = 0; i < newNode[j][1].level; i++)
+                        for (i = 0; i < newNode[1].level; i++)
                         {
-                            newNode[j][0].next[i] = newNode[j][1];
-                            newNode[j][1].next[i] = n[j].next[i];
+                            newNode[0].next[i] = newNode[1];
+                            newNode[1].next[i] = n.next[i];
                         }
-                        for (; i < newNode[j][0].level; i++)
-                            newNode[j][0].next[i] = na[j][i];
+                        for (; i < newNode[0].level; i++)
+                            newNode[0].next[i] = na[i];
                     }
 				}
 				else
                 {
-                    for (i = 0; i < newNode[j][0].level; i++)
+                    for (i = 0; i < newNode[0].level; i++)
                     {
-                        newNode[j][0].next[i] = n[j].next[i];
+                        newNode[0].next[i] = n.next[i];
                     }
                 }
 				
-				for(i=0; i < newNode[j][0].level; i++)
+				for(i=0; i < newNode[0].level; i++)
                 {
-                    pa[j][i].next[i] = newNode[j][0];
+                    pa[i].next[i] = newNode[0];
                 }
-                if (split[j] && (newNode[j][1].level > newNode[j][0].level)){
-                    for(; i < newNode[j][1].level; i++)
+                if (split[k] && (newNode[1].level > newNode[0].level)){
+                    for(; i < newNode[1].level; i++)
                     { 	
-                        pa[j][i].next[i] = newNode[j][1];
+                        pa[i].next[i] = newNode[1];
                     }
                 }
 
 			}
-		}
-		
 	}
 	
 	public void leapListRemove(LeapList[] ll, long[] keys, int size)
@@ -250,63 +241,44 @@ public class LeapListDB {
 	
 		    for(j=0; j<size; j++)
 		    {
-		        n[j] = new LeapNode();
 		        keys[j]+=2; // Avoid sentinel
 		    }
-		    RemoveSetup(ll,keys, size, pa, na, n, oldNode, merge, changed);
-		    RemoveLT(size,pa,na,n,oldNode,merge,changed);
-		   /* for(j=0; j<MAX_ROW; j++)
-		    {
-		       // init_node_trie(n[j]); TODO new trie() and run in ctor new LeapNode()
-		    }*/
-		    RemoveReleaseAndUpdate(size,pa,na,n,oldNode,merge,changed);
+		    for (int i = 0; i < size; i++){
+		    	n[i] = RemoveSetup(ll[i],keys[i], pa[i], na[i], oldNode[i], merge, changed, i);
+		    	RemoveReleaseAndUpdate(pa[i], na[i], n[i], oldNode[i], merge, changed, i);
+		    }
 		} finally {
 			dbLock.unlock();
 		}
 	}
 
-	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
-			LeapNode[] n, LeapNode[][] oldNode, boolean[] merge,
-			boolean[] changed) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void RemoveReleaseAndUpdate(int size, LeapNode[][] pa,
-			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
-			boolean[] merge, boolean[] changed) {
-		// TODO Auto-generated method stub
-		 for(int j=0; j<size; j++)
-		    {
-		        if(changed[j])
+	private void RemoveReleaseAndUpdate(LeapNode[] pa,
+			LeapNode[] na, LeapNode n, LeapNode[] oldNode,
+			boolean[] merge, boolean[] changed, int k) {
+		        if(changed[k])
 		        {
 		            // Update the next pointers of the new node
 		            int i=0;
-		            if (merge[j])
+		            if (merge[k])
 		            {   
-		                for (; i < oldNode[j][1].level; i++)
-		                    n[j].next[i] = oldNode[j][1].next[i];//.UnMark();
+		                for (; i < oldNode[1].level; i++)
+		                    n.next[i] = oldNode[1].next[i];//.UnMark();
 		            }
-		            for (; i < oldNode[j][0].level; i++)
-		                n[j].next[i] = oldNode[j][0].next[i];//.UnMark();
+		            for (; i < oldNode[0].level; i++)
+		                n.next[i] = oldNode[0].next[i];//.UnMark();
 		            
 		            
-		            for(i = 0; i < n[j].level; i++)
+		            for(i = 0; i < n.level; i++)
 		            {   
-		                pa[j][i].next[i] = n[j];
+		                pa[i].next[i] = n;
 		            }
-		            n[j].live = true;
-		            if(merge[j])
-		            	oldNode[j][1].trie=null;
+		            n.live = true;
+		            if(merge[k])
+		            	oldNode[1].trie=null;
 
-		            oldNode[j][0].trie=null;
-		        }
-		        else
-		        {
-		            n[j].trie=null;
-		        }    
-		    }
-	}
+		            oldNode[0].trie=null;
+		        }  
+	} 
 	
 	Object find(LeapNode node,long key){
 		
@@ -324,58 +296,53 @@ public class LeapListDB {
 		
 	}
 
-	void RemoveSetup(LeapList[] ll, long[] keys,int size, LeapNode[][] pa,
-			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
-			boolean[] merge, boolean[] changed) 
+	LeapNode RemoveSetup(LeapList l, long key, LeapNode[] pa,
+			LeapNode[] na, LeapNode[] oldNode,
+			boolean[] merge, boolean[] changed, int k) 
 	{
-
-		int [] total = new int[size];
-		for(int j=0; j<size; j++)
-	    {
-	        merge[j] = false;
-	        ll[j].searchPredecessor( keys[j], pa[j], na[j]);
-	        oldNode[j][0] = na[j][0];
+			LeapNode n = new LeapNode();
+			int total = 0;//might be problem
+	        merge[k] = false;
+	        l.searchPredecessor( key, pa, na);
+	        oldNode[0] = na[0];
 	        /* If the key is not present, just return */
-	        if (find(oldNode[j][0], keys[j]) == null)
+	        if (find(oldNode[0], key) == null)
 	        {
-	            changed[j] = false;
-	            continue;
+	            changed[k] = false;
+	            	return n;
 	        }
-	        total[j] = oldNode[j][0].count;
-	       // do
-	       // {
-	            oldNode[j][1] = oldNode[j][0].next[0];
-	        //} while ((oldNode[j][0].live) /*&& (is_marked_ref(oldNode[j][1]))*/);
+	        total = oldNode[0].count;
+	        oldNode[1] = oldNode[0].next[0];
 	       
-	        if(oldNode[j][1] != null)
+	        if(oldNode[1] != null)
 	        {
-	            total[j] = total[j] + oldNode[j][1].count;
-	            if(total[j] - 1<= LeapList.NODE_SIZE)
+	            total = total + oldNode[1].count;
+	            if(total - 1<= LeapList.NODE_SIZE)
 	            {
-	                merge[j] = true; 
+	                merge[k] = true; 
 	            }
 	        }
-	        n[j].level = oldNode[j][0].level;    
-	        n[j].low   = oldNode[j][0].low;
-	        n[j].count = oldNode[j][0].count;
-	        n[j].live = false;
+	        n.level = oldNode[0].level;    
+	        n.low   = oldNode[0].low;
+	        n.count = oldNode[0].count;
+	        n.live = false;
 
-	        if(merge[j])// this part of code is not in the paper.
+	        if(merge[k])// this part of code is not in the paper.
 	        {
-	            if (oldNode[j][1].level > n[j].level)
+	            if (oldNode[1].level > n.level)
 	            {
-	                n[j].level = oldNode[j][1].level;
+	                n.level = oldNode[1].level;
 	            }
-	            n[j].count += oldNode[j][1].count;
-	            n[j].high = oldNode[j][1].high;
+	            n.count += oldNode[1].count;
+	            n.high = oldNode[1].high;
 	        }
 	        else
 	        {
-	            n[j].high = oldNode[j][0].high;
+	            n.high = oldNode[0].high;
 	        }
 
-	        changed[j] = remove(oldNode[j], n[j], keys[j], merge[j]);
-	    }
+	        changed [k] = remove(oldNode, n, key, merge[k]);
+	        return n;
 	}
 	
 	private boolean remove(LeapNode[] old_node, LeapNode n,
