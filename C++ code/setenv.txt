@@ -1,0 +1,1 @@
+setenv LD_LIBRARY_PATH /usr/local/stow/gcc-4.8.0/lib/gcc-4.8.0/lib32:/usr/local/stow/gcc-4.8.0/lib/gcc-4.8.0/lib64

@@ -1,0 +1,1 @@
+gcc-4.8 -O3 -g -DINTEL -fomit-frame-pointer -march=x86-64 -fgnu-tm -mrtm  -c -o leap_FG_lock_multi.o leap_FG_lock_multi.c

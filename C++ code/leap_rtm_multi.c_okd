@@ -674,14 +674,17 @@ setval_t set_remove(set_t *l, setkey_t k)
     {
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
-    
+    }
 retry_remove:
-    
+    for(j=0; j<MAX_ROW; j++)
+    {
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
 #endif	/* USE_TRIE */
-    
+    }
 
+    for(j=0; j<MAX_ROW; j++)
+    {
 retry_last_remove:
         merge[j] = 0;
         old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
@@ -761,7 +764,7 @@ inner_tx:
 
         changed[j] = removeAct(old_node[j], n[j], k, merge[j], ptst);
 
-    
+    }
 
     if (_xbegin()  == _XBEGIN_STARTED )
     {
@@ -866,15 +869,17 @@ inner_tx:
     }
     else
     {
-        
+        for(j=0; j<MAX_ROW; j++)
+        {
 #ifdef	USE_TRIE
             trie_destroy(&n[j]->trie, ptst);
 #endif	/* USE_TRIE */
-        
+        }
         goto retry_remove;
     }
 
-    
+    for(j=0; j<MAX_ROW; j++)
+    {
         if(changed[j])
         {
 

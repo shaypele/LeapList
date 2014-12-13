@@ -445,10 +445,11 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
         ASSERT_GC(new_node[j][1]);
         new_node[j][0]->live = 0;
         new_node[j][1]->live = 0;
-    
+    }
 retry_update:
 
-   
+   for(j = 0; j<MAX_ROW; j++)
+   {
 
 #ifdef	USE_TRIE
         init_node_trie(new_node[j][0]);
@@ -471,14 +472,16 @@ retry_update:
         }
 
         changed[j] = insert(new_node[j], n[j], k, v, overwrite, split[j], ptst);
-
+}
 
 	//printf("Before xBegin\n");
 
    status = _xbegin()  ;
 //printf("xBegin status : %d ", status );
     if ( status == _XBEGIN_STARTED )
-    { 
+    {  
+	for(j = 0; j<MAX_ROW; j++)
+   {
 	//printf("xBegin status : %d \n", status );
         
             if (n[j]->live == 0)
@@ -488,7 +491,7 @@ retry_update:
 					goto fail_path;
             }
 
-            for(i = 0; i < n[j]->level; i++)
+            for(i = 0; i < 6; i++)
             {   
                 if(preds[j][i]->next[i] != n[j])
 				{
@@ -502,8 +505,9 @@ retry_update:
 			              _xabort (5);
 					goto fail_path;
             	}
+				
             }
-
+_xend();
             for(i = 0; i < max_height[j]; i++)
             {   
                 if(preds[j][i]->next[i] != succs[j][i])
@@ -563,8 +567,9 @@ retry_update:
 
                 n[j]->live = 0;
             }
+			
 
-
+}
         
         //indicator = 1;
 		////printfr("bef xEnd\n");
@@ -578,18 +583,20 @@ retry_update:
     {
 fail_path:
 	//printf("Fail: status is %d\n",status);
-
+for(j = 0; j<MAX_ROW; j++)
+   {
 #ifdef	USE_TRIE
             /* deallocate the tries */
             trie_destroy(&new_node[j][0]->trie, ptst);
             if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
 #endif	/* USE_TRIE */
-        
+        }
         goto retry_update;
     }
 
 
-   
+   for(j = 0; j<MAX_ROW; j++)
+   {
         if(changed[j]) // unlock
         {
             // Make the correct linking of the new nodes
@@ -654,6 +661,7 @@ fail_path:
 
     }
     }
+	
     critical_exit(ptst);
     return 0;
 }
@@ -674,14 +682,17 @@ setval_t set_remove(set_t *l, setkey_t k)
     {
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
-    
+    }
 retry_remove:
-    
+    for(j=0; j<MAX_ROW; j++)
+    {
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
 #endif	/* USE_TRIE */
-    
+    }
 
+    for(j=0; j<MAX_ROW; j++)
+    {
 retry_last_remove:
         merge[j] = 0;
         old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
@@ -761,7 +772,7 @@ inner_tx:
 
         changed[j] = removeAct(old_node[j], n[j], k, merge[j], ptst);
 
-    
+    }
 
     if (_xbegin()  == _XBEGIN_STARTED )
     {
@@ -866,15 +877,17 @@ inner_tx:
     }
     else
     {
-        
+        for(j=0; j<MAX_ROW; j++)
+        {
 #ifdef	USE_TRIE
             trie_destroy(&n[j]->trie, ptst);
 #endif	/* USE_TRIE */
-        
+        }
         goto retry_remove;
     }
 
-    
+    for(j=0; j<MAX_ROW; j++)
+    {
         if(changed[j])
         {
 

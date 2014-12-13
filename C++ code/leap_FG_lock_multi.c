@@ -48,6 +48,8 @@
 #define UNMARK(X) X=get_unmarked_ref(X)
 #define MARK(X) X=make_marked_ptr(X)
 
+#define EINVAL 22
+
 static int gc_id;
 typedef void set_t;
 
@@ -61,9 +63,9 @@ typedef struct node_t {
     volatile unsigned long count;           // Population.
     volatile unsigned long level;           // Pointers number.
     volatile item_t data[NODE_SIZE];        // The actual key-value.
-    volatile int 		isMarked;		// Is marked to be removed
-    volatile vwLock 	lock ;			// lock ID
-	volatile vwLock 	sync_vars[MAX_ALL_THREADS]; // Array of all threads using the lock
+    volatile unsigned long 		isMarked;		// Is marked to be removed
+    pthread_mutex_t 	lock ;			// lock 
+
 #ifdef	USE_TRIE
     volatile trie_t trie;
 #endif	/* USE_TRIE */
@@ -152,24 +154,32 @@ static volatile node_t *search_predecessors(node_t *l, setkey_t k, volatile node
     ptst_t *ptst;
     unsigned long cnttt = 0;
 	int counter = 0;
+	
+	 //printf("start pred\n");
+	 //__sync_synchronize ();
+	
 restart_look:
 
     {
+	counter++;
         x = l;
 
         for ( i = MAX_LEVEL - 1; i >= 0; i-- )
         {
             for ( ; ; )
-            {
+            { 
+			//printf("inner loop search pred. ");
                 x_next = x->next[i];
+				//__sync_synchronize ();
 	// printf("searchin high key %d. Wanted key %d\n",x_next->high,k);
                 if (!x_next->live)
                 {
-		      
-				      printf("searching is marked = %d\n",x_next->isMarked);
-				      printf("next is = %d\n",x_next->next[0] );
+				if (counter > 10000) {
+		      printf("C>100 thread is %ud\n",pthread_self());
+				      printf("searching is marked = %d",x_next->isMarked);
+				     printf("next is = %d\n",x_next->next[0] );
 					printf("level is = %d\n",i );
-				      printf("MAX LEVEL IS = %d\n",x->level - 1 );
+				      printf("MAX LEVEL IS = %d\n",x->level - 1 );}
                     goto restart_look;
                 }
 
@@ -183,6 +193,7 @@ restart_look:
 			//printf("next\n");
                     x=x_next;
                 }
+				
             }
 			
             if ( pa ) pa[i] = x;
@@ -190,13 +201,20 @@ restart_look:
         }
 
     }
-    printf("retrurn\n");
+	
+	//usleep(50);
+	//printf("leave search \n ");
+    //printf("retrurn\n");
+	
+	
     return x_next;
 }
 
 /* Deallocates a node and its trie) */
 static void deallocate_node(node_t *n, ptst_t *ptst)
 {
+	//rprintf("Destory start \n");
+	pthread_mutex_destroy(&n->lock);
 #ifdef	USE_TRIE
     volatile trie_t trie = n->trie;
 #endif	/* USE_TRIE */
@@ -204,6 +222,7 @@ static void deallocate_node(node_t *n, ptst_t *ptst)
 #ifdef	USE_TRIE
     trie_destroy(&trie, ptst);
 #endif	/* USE_TRIE */
+//rprintf("Destory end\n");
 }
 
 /*
@@ -227,14 +246,16 @@ set_t *set_alloc(void)
         l->live = 1;
         l->level = MAX_LEVEL;
 		l->isMarked = 0;
+		if (pthread_mutex_init(&l->lock, NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        exit(9);
+	    }
+		
         for(i = 0 ; i < MAX_LEVEL ; i++)
         {
             l->next[i] = NULL;
-        }
-
-		//Default lock settings
-		l->lock = 0;
-		l->sync_vars[0] = 0;		
+        }		
 
 
 #ifdef	USE_TRIE
@@ -251,9 +272,12 @@ set_t *set_alloc(void)
         }
         leap->live = 1;
 		leap->isMarked = 0;
-		//Default lock settings
-		leap->lock = 0;
-		leap->sync_vars[0] = 0;		
+
+		if (pthread_mutex_init(&leap->lock, NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        exit(9);
+	    }
 
 #ifdef	USE_TRIE
         init_node_trie(leap);
@@ -440,24 +464,27 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
 }
 
 
-void unlockPredForUpdate(volatile  node_t volatile  **pa,int highestLocked, vwLock lockOrder[MAX_LEVEL])
+void unlockPredForUpdate(volatile  node_t **pa,int highestLocked)
 {
+//rprintf("Destory pred start \n");
 	node_t *prevPred = 0x0;
 	int j;
 	for ( j = 0 ; j <= highestLocked ; j++ ){
 		if ( pa[j]!=prevPred )
 		{
-			OrderedLock_Release( &lockOrder[j],pa[j]->sync_vars );
+			//rprintf("unlock pred start \n");
+			pthread_mutex_unlock(&pa[j]->lock);
+			//rprintf("unlock pred end \n");
 			prevPred = pa[j];
 		}
 	}
+	//rprintf("Destory  pred start \n");
 }
 
 setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 {
     ptst_t   *ptst;
     volatile node_t volatile *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
-	 volatile node_t *predsLockOrder[MAX_ROW][MAX_LEVEL], *nLockOrder[MAX_ROW];
     int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
     unsigned long max_height[MAX_ROW];
     node_t *new_node[MAX_ROW][2];
@@ -481,12 +508,14 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
         new_node[j][1]->live = 0;
 		new_node[j][1]->isMarked = 0;
     }
-	
+	int c = 0;
 	for(j = 0; j<MAX_ROW; j++)
-    {
+    {if (c > 10000){printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n******************\n\n\n\n\n\n\n\n\n");};
 		lastLockedNode  = 0x0;
 		isMarked = 0;
 	retry_update:
+	c++;
+				
 		highestLocked = -1;
 		valid = 1;
 		pred = 0x0;
@@ -497,33 +526,88 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 
 #ifdef	USE_TRIE
         init_node_trie(new_node[j][0]);
+		if (pthread_mutex_init(&new_node[j][0]->lock, NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        exit(9);
+	    }
         init_node_trie(new_node[j][1]);
+		if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        exit(9);
+	    }
 #endif	/* USE_TRIE */
 
         n[j] = search_predecessors(db[j], k, preds[j], succs[j]);
 
 if (lastLockedNode != 0x0 && lastLockedNode != n[j]){
 		if (lastLockedNode->isMarked){
-		OrderedLock_Release( &nLockOrder[j],lastLockedNode ->sync_vars );
+		//rprintf("unlock last locked start \n");
+			pthread_mutex_unlock(&lastLockedNode->lock);
+			//rprintf("unlock last locked start \n");
 		lastLockedNode->isMarked = 0;
 		isMarked = 0;
 }
-printf("different headddd \n");
+//printf("different headddd \n");
 }
-
+		if (c > 10000){
+					//Yprintf("C>100 thread is %ud\n",pthread_self());
+					//Yprintf("Case1 : isMarked = %d || (!n[j]->isMarked && n[j]->live ) = %d . live = %d \n",isMarked,(!n[j]->isMarked && n[j]->live ), n[j]->live ); 
+					//Yprintf("Case2 : (n[j]->isMarked ) = %d  \n",(n[j]->isMarked ));
+					
+					}
 		if ( isMarked || (!n[j]->isMarked && n[j]->live )  )
 		{
 
 			if ( !isMarked )
 			{
-				OrderedLock_Acquire(&nLockOrder[j], &n[j]->lock , n[j]->sync_vars );
-				if (n[j]->isMarked){
-					OrderedLock_Release( &nLockOrder[j],n[j]->sync_vars );
-					printf("Try to lock and is marked, then release lock and try again\n");
+				if (c > 10000){
+					//Yprintf("C>100 thread is %ud\n",pthread_self());
+					//Yprintf("bef lock node to rm\n");
+				}
+				
+				//pthread_mutex_lock(&n[j]->lock);
+				int countLock = 0, err = 0,isLockFailed = 0;
+				while ((err = pthread_mutex_trylock(&n[j]->lock)) && !isLockFailed){
+					countLock ++;
+					if (countLock > 1){
+						//printf(" stuck in lock 1. err is %d , thread is %d \n ",err, pthread_self());
+						if (err == EINVAL){ // not initialized , so probably not live
+						//pthread_mutex_init(&n[j]->lock,NULL);
+							//printf(" err is 22 . live = %d \n",n[j]->live);
+							isLockFailed = 1;
+							//goto retry_update;
+						}
+						/*err = pthread_mutex_init(&n[j]->lock,NULL);
+						if ( err!= 0)
+									{
+						printf("\n mutex init failed , err is %d\ \n",err);
+						exit(9);
+						}	*/
+					}
+				}
+				if (c > 10000){
+					//Yprintf("C>100 thread is %ud\n",pthread_self());
+					//Yprintf("aft lock node to rm\n");
+				}
+				//printf("aft lock node to rm\n");
+				if (n[j]->isMarked || !n[j]->live){
+				//rprintf (" bef n[j] unlock if marked\n");
+				if (!isLockFailed){
+					pthread_mutex_unlock(&n[j]->lock);
+					}
+					
+					//rprintf (" aft n[j] unlock if marked\n");
+					//printf("Try to lock and is marked, then release lock and try again\n");
 					#ifdef	USE_TRIE
 			            // deallocate the tries 
+						//rprintf("Destory start start node\n");
 			            trie_destroy(&new_node[j][0]->trie, ptst);
+						pthread_mutex_destroy(&new_node[j][0]->lock);
 			            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+						pthread_mutex_destroy(&new_node[j][1]->lock);
+						//rprintf("Destory start end node\n");
 					#endif	// USE_TRIE 
 					goto retry_update;
 				}
@@ -552,86 +636,52 @@ printf("different headddd \n");
 				pred = preds[j][level];
 				succ = succs[j][level];
 				if (pred != prevPred){
-					OrderedLock_Acquire(&predsLockOrder[j][level], &pred->lock , pred->sync_vars );
+					//if (c > 10000)
+					//Yprintf("bef lock pred \n");
+						//pthread_mutex_lock(&pred->lock);
+						int countLock2 = 0, err2 = 0;
+						while (err2 = pthread_mutex_trylock(&pred->lock)){
+							countLock2 ++;
+							if (err2 == EINVAL ){
+								if (countLock2 == 10001 ){
+								printf("\n\n\n\n\n\n\n****************************\n\n\n\n\n\n\n\n");
+								}
+								//printf(" stuck in lock 2. err is %d , thread is %d . Level is %d , \n ",err2, pthread_self());
+								valid = 0;
+								break;
+							}
+						}
+						if (!valid){
+						break;
+						}
+					//if (c > 10000)
+					//Yprintf("after lock pred\n");
 					highestLocked = level;
 					prevPred = pred;
 				}
 				valid = !pred->isMarked && pred->next[level] == succ ;
 			}
 			if (!valid){
-				unlockPredForUpdate( preds[j], highestLocked, predsLockOrder[j]);
+				unlockPredForUpdate( preds[j], highestLocked);
 				#ifdef	USE_TRIE
 		            // deallocate the tries 
+					//rprintf("Destory start not valid\n");
 		            trie_destroy(&new_node[j][0]->trie, ptst);
+				pthread_mutex_destroy(&new_node[j][0]->lock);
 		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+					pthread_mutex_destroy(&new_node[j][1]->lock);
+					//rprintf("Destory start not valid\n");
 				#endif	// USE_TRIE 
- 				printf("pred not valid. Pred is marked = %d, next not right %d\n",!pred->isMarked,pred->next[level] == succ);
+ 				//printf("pred not valid. Pred is marked = %d, next not right %d\n",!pred->isMarked,pred->next[level] == succ);
+				if (c > 10000){
+					//Yprintf("Case3 : !pred->isMarked = %d && pred->next[level] == succ =%d  \n",!pred->isMarked,(pred->next[level] == succ ));
+				
+					}
 				goto retry_update;
 			}	
-    	
-	    	
-	/* *** Update TL
-	    __transaction_atomic 
-	    { 
-	        
-	            if (n[j]->live == 0)
-	                __transaction_cancel;
-
-	            for(i = 0; i < n[j]->level; i++)
-	            {   
-	                if(preds[j][i]->next[i] != n[j]) __transaction_cancel;
-	                if(n[j]->next[i]) if(!n[j]->next[i]->live) __transaction_cancel;
-	            }
-
-	            for(i = 0; i < max_height[j]; i++)
-	            {   
-	                if(preds[j][i]->next[i] != succs[j][i]) __transaction_cancel;
-	                if(!(preds[j][i]->live)) __transaction_cancel;
-	                if(!(succs[j][i]->live)) __transaction_cancel;
-	            }
 
 
-
-	            if(changed[j]) // lock
-	            {
-	                for(i = 0; i < n[j]->level; i++)
-	                {
-	                    if (n[j]->next[i] != NULL)
-	                    {
-	                        mark_abo(n[j]->next[i]);
-	                        MARK(n[j]->next[i]);
-	                    }
-	                }                        
-
-	                for(i = 0; i < max_height[j]; i++)
-	                {
-	                    mark_abo(preds[j][i]->next[i]);
-	                    MARK(preds[j][i]->next[i]);
-	                }
-
-	                n[j]->live = 0;
-	            }
-
-
-	        }
-	        indicator = 1;
-
-	   
-	    if(!indicator)
-	    {
-
-	        
-	#ifdef	USE_TRIE
-	            // deallocate the tries 
-	            trie_destroy(&new_node[j][0]->trie, ptst);
-	            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-	#endif	// USE_TRIE 
-	       
-	        goto retry_update;
-	    } */
-
-
-	    
+	    n[j]->live = 0;
 	        if(changed[j]) // unlock
 	        {
 	            // Make the correct linking of the new nodes
@@ -679,20 +729,20 @@ printf("different headddd \n");
 
 				
 			new_node[j][0]->live = 1;
-			new_node[j][1]->live = 1;
-				//Default lock settings
-				new_node[j][0]->lock = 0;
-				new_node[j][0]->sync_vars[0] = 0;
+
 	            if (split[j])
 	            {
-	                
-					new_node[j][1]->lock = 0;
-					new_node[j][1]->sync_vars[0] = 0;
+	                			new_node[j][1]->live = 1;
+
 	            }
-			n[j]->live = 0;
+			
 	        }
 
-			OrderedLock_Release( &nLockOrder[j],n[j]->sync_vars );
+			//rprintf (" bef n[j] unlock \n");
+			pthread_mutex_unlock(&n[j]->lock);
+			//rprintf (" aft n[j] unlock \n");
+			unlockPredForUpdate( preds[j], highestLocked);
+			
 	        if(changed[j])
 	        {
 	            deallocate_node(n[j], ptst);
@@ -702,19 +752,27 @@ printf("different headddd \n");
 	        {
 	            deallocate_node(new_node[j][0], ptst);
 	            deallocate_node(new_node[j][1], ptst);
-	        }    
+	        }  
+					
 		}
 		else
 		{
-			printf("isMarked = %d|| (!n[j]->isMarked ==  %d && n[j]->live ==%d) ",isMarked,!n[j]->isMarked , n[j]->live);
+			//printf("isMarked = %d|| (!n[j]->isMarked ==  %d && n[j]->live ==%d) ",isMarked,!n[j]->isMarked , n[j]->live);
 			#ifdef	USE_TRIE
 		            // deallocate the tries 
+					//printf("before destroy main else \n");
+		            pthread_mutex_destroy(&new_node[j][0]->lock);
 		            trie_destroy(&new_node[j][0]->trie, ptst);
 		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+					pthread_mutex_destroy(&new_node[j][1]->lock);
+					//printf("after destroy main else \n");
 				#endif	// USE_TRIE 
 			goto retry_update;
 		}
-
+if ( c > 10000){
+printf("C>100 thread is %ud. j is %d\n",pthread_self(),j);
+			printf(" after unlocks \n");
+			}	
     }
     critical_exit(ptst);
     return 0;
@@ -724,8 +782,10 @@ printf("different headddd \n");
 
 setval_t set_remove(set_t *l, setkey_t k)
 {
+	#ifdef oioi
     ptst_t *ptst;
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
+	   volatile node_t *preds_node1[MAX_ROW][MAX_LEVEL], *succs_node1[MAX_ROW][MAX_LEVEL];
     int i, j, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
     int indicator2 = 0;
     node_t *n[MAX_ROW];
@@ -734,19 +794,21 @@ setval_t set_remove(set_t *l, setkey_t k)
     ptst = critical_enter();
     for(j=0; j<MAX_ROW; j++)
     {
+		byte highestLocked = -1;
+		char[] isMarkedArr = new char[2]; 
+        isMarkedArr[0] = 0;
+        isMarkedArr[1] = 0;
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
-    }
+    
 retry_remove:
-    for(j=0; j<MAX_ROW; j++)
-    {
+    
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
 #endif	/* USE_TRIE */
-    }
+    
 
-    for(j=0; j<MAX_ROW; j++)
-    {
+    
 retry_last_remove:
         merge[j] = 0;
         old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
@@ -754,6 +816,9 @@ retry_last_remove:
         /* If the key is not present, just return */
         if (find(old_node[j][0], k) == 0)
         {
+			if (!oldNode[j][0].live){
+        		 goto retry_last_remove;
+        	 }
             changed[j] = 0;
             continue;
         }
@@ -826,7 +891,7 @@ inner_tx:
 
         changed[j] = remove(old_node[j], n[j], k, merge[j], ptst);
 
-    }
+    
 
     __transaction_atomic 
     {
@@ -937,8 +1002,7 @@ inner_tx:
         goto retry_remove;
     }
 
-    for(j=0; j<MAX_ROW; j++)
-    {
+    
         if(changed[j])
         {
 
@@ -958,9 +1022,7 @@ inner_tx:
             }
 
             n[j]->live = 1;
-			n[j]->lock = 0;
-			n[j]->sync_vars[0] = 0;
-
+			
             if(merge[j])
                 deallocate_node(old_node[j][1], ptst);
 
@@ -974,7 +1036,7 @@ inner_tx:
     }
 
     critical_exit(ptst);
-
+#endif 
     return 0;
 }
 

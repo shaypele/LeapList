@@ -322,6 +322,8 @@ static void *thread_start(void *arg)
         log++;
 #endif
     }
+	int orgID = id;
+	printf("out of set harness loop 1. num_threads is %d . my id is : %d\n",threads_initialised3,orgID);
 
     /* BARRIER FOR ALL THREADS */
     {
@@ -329,9 +331,10 @@ static void *thread_start(void *arg)
         while ( (n_id = CASIO(&threads_initialised3, id, id+1)) != id ) 
             id = n_id;
     }
+	printf("out of set harness loop 2 num_threads is %d, my id is \n",threads_initialised3,orgID);
     while ( threads_initialised3 != num_threads ) MB();
 
-
+	printf("out of set harness loop3 num_threads is %d\n",threads_initialised3);
     if ( id == num_threads - 1 )
     {
         gettimeofday(&done_time, NULL);

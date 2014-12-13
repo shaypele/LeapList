@@ -75,7 +75,7 @@
  */
 
 #define MB() // __asm__ __volatile__ ("lock; addl $0,0(%%esp)" : : : "memory")
-#define WMB()// __asm__ __volatile__ ("" : : : "memory")
+#define WMB() //__asm__ __volatile__ ("" : : : "memory")
 #define RMB() MB()
 #define VOLATILE /*volatile*/
 

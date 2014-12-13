@@ -1,0 +1,4 @@
+pitfalls in grained
+
+1. FALSE SHARING - didn't defined marked as long.
+2. free lock - when destroying mutex , others try to acquire it and get stuck because it's not initialized ( err 22). ALWAYS use trylock. After realizing it's err 22 restart from beginning.
