@@ -56,7 +56,6 @@ public class LeapList {
 		return x_next;
 	}
 	
-	// TODO: check if marked/live.
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -72,7 +71,6 @@ public class LeapList {
 		return retVal;
 	}
 	
-	// TODO: check if marked/live.
 	public Object[] RangeQuery (long low, long high){
 	    LeapNode n;
 	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
@@ -106,8 +104,6 @@ public class LeapList {
 	   
 	    return rangeSet.toArray();
 	}
-
-
 
 	void addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
