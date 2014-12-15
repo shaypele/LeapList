@@ -19,17 +19,12 @@ public class LeapNode {
 		this.low = low;
 		this.high = high;
 		this.count = count;
-		this.level = level;
 		
-		if (sortedPairs != null)
-			this.low=low;
-			this.high=high;
-			this.count =count;
-			this.level=level;
+		if (sortedPairs != null){
 			this.data= sortedPairs;
-			
-			if(sortedPairs!=null)
 			trie = new Trie(sortedPairs, sortedPairs.length);
+		}
+			
 	}
 	
 	public LeapNode (){
@@ -37,10 +32,4 @@ public class LeapNode {
 			data[i] = new LeapSet(0,0);
 		}
 	}
-	
-	public LeapNode UnMark() {
-		// TODO see how to handle with transactions.
-		return this;
-	}
-
 }

@@ -8,7 +8,7 @@ public class LeapList {
 	
 	static final int NODE_SIZE = 60;
 	
-	LeapNode head;
+	private LeapNode head;
 
 	public LeapList () {
 		head = new LeapNode (true, Long.MIN_VALUE, Long.MIN_VALUE, 0, MAX_LEVEL, null);
@@ -73,7 +73,7 @@ public class LeapList {
 	    {
 	    	n = addValuesToSet(low, high, n, rangeSet);
 	    	if (n.next[0] != null){
-	    		n = n.next[0].UnMark();
+	    		n = n.next[0];
 	    	}
 	    }
 	    addValuesToSet(low, high, n, rangeSet);
