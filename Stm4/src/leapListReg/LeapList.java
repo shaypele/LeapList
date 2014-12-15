@@ -1,10 +1,7 @@
 package leapListReg;
 
 import java.util.ArrayList;
-
 import org.deuce.Atomic;
-
-import com.sun.tracing.dtrace.Attributes;
 
 
 
@@ -40,11 +37,7 @@ public class LeapList {
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
 				x_next = x.getNext(i);
-				/*if (x.Marks[i] || !x_next.live)
-                {
-                    restartLook = true;
-                    break;
-                }*/
+				
 				if (x_next.high >= key)
 					break;
 				else
@@ -68,7 +61,6 @@ public class LeapList {
 		return x_next;
 	}
 	
-	//@Atomic
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -107,7 +99,7 @@ public class LeapList {
 	    return rangeSet.toArray();
 	}
 
-	@Atomic(retries=1)
+	@Atomic()
 	private void getAndAddSucssesor(ArrayList<LeapNode> nodesToIterate, LeapNode n,
 			long low,long high) {
 		nodesToIterate.clear();
@@ -126,7 +118,7 @@ public class LeapList {
 	    
 	}
 
-	LeapNode addValuesToSet(long low, long high, LeapNode n,
+	private LeapNode addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
 		for (int i = 0; i < n.count ; i++)
 		{

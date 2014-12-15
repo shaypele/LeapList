@@ -87,7 +87,7 @@ public class Test {
 	      }
 			System.out.println(" Total number of items before delete is " + totItems);*/
 	     
-	/*	threadRQ.start();
+	//	threadRQ.start();
 		threadRem2.start();
 	    threadRem3.start();
 	    threadLook1.start();
@@ -97,7 +97,7 @@ public class Test {
 	    	threadRem3.join();
 	    	threadLook1.join();
 	    }
-	    catch (InterruptedException e) { };*/
+	    catch (InterruptedException e) { };
 	      
 	      long end = System.nanoTime();
 	      /*

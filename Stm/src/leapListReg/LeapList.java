@@ -32,41 +32,42 @@ public class LeapList {
 		boolean   xRef = false; 
 		boolean restartLook = false;
 		do{
-		x = head;
-		xRef = false; 
-		restartLook = false;
-		for (int i = MAX_LEVEL -1; i >= 0; i--) {
-			while (true){
-				x_next = x.getNext(i);
-				/*if (x.Marks[i] || !x_next.live)
-                {
-                    restartLook = true;
-                    break;
-                }*/
-				if (x_next.high >= key)
-					break;
-				else
+			x = head;
+			xRef = false; 
+			restartLook = false;
+			for (int i = MAX_LEVEL -1; i >= 0; i--)
+			{
+				while (true)
 				{
-					x = x_next;
-					xRef = x.Marks[i];
+					x_next = x.getNext(i);
+					if (x_next.high >= key)
+						break;
+					else
+					{
+						x = x_next;
+						xRef = x.Marks[i];
+					}
+				}
+			  if (xRef ||  x.Marks[i])
+			  {
+				  restartLook = true;
+			  }
+			  if(restartLook == true)
+					break;
+			  
+				if (pa != null)
+				{
+					pa[i] = x;
+				}
+				if (na != null)
+				{
+					na[i] = x_next;
 				}
 			}
-		  if (xRef ||  x.Marks[i])
-			  restartLook = true;
-			if(restartLook == true){
-				break;
-			}
-			if (pa != null)
-				pa[i] = x;
-			if (na != null)
-				na[i] = x_next;
-			
-		}
 		}while(restartLook);
 		return x_next;
 	}
 	
-	//@Atomic
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -105,7 +106,7 @@ public class LeapList {
 	    return rangeSet.toArray();
 	}
 
-	@Atomic(retries=64)
+	@Atomic()
 	private void getAndAddSucssesor(ArrayList<LeapNode> nodesToIterate, LeapNode n,
 			long low,long high) {
 		nodesToIterate.clear();
@@ -113,10 +114,12 @@ public class LeapList {
 	    nodesToIterate.add(n);	
 	    while (high>n.high)
 	    {
-	    	if (!n.live){
+	    	if (!n.live)
+	    	{
     			 break;
-    		 }
-	    	if (n.getNext(0) != null){
+    		}
+	    	if (n.getNext(0) != null)
+	    	{
  	    		n = n.getNext(0);
  	    		nodesToIterate.add(n);
  	    	}

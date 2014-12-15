@@ -9,8 +9,8 @@ import utils.Trie;
 
 
 public class LeapNode {
+	
 	volatile boolean live ;
-	//volatile boolean[] lives = new boolean[LeapList.MAX_LEVEL];
 	volatile boolean[] Marks = new boolean[LeapList.MAX_LEVEL];
 	volatile public long low;
 	volatile public long high;
@@ -28,29 +28,24 @@ public class LeapNode {
 		this.low = low;
 		this.high = high;
 		this.count = count;
-		this.level = level;
 		
 		if (sortedPairs != null)
-			this.low=low;
-			this.high=high;
-			this.count =count;
-			this.level=level;
+		{
 			this.data= sortedPairs;
-			
-			if(sortedPairs!=null)
 			trie = new Trie(sortedPairs, sortedPairs.length);
+		}
+			
 	}
 	
 	public LeapNode (){
-		for (int i = 0 ; i <LeapList.MAX_LEVEL ; i ++ ){
-			//next[i] = new LeapNode();
-		//	lives[i] = false;
+		for (int i = 0 ; i <LeapList.MAX_LEVEL ; i ++ )
+		{
 			Marks[i]= false;
-		}
-			
+		}	
 		this.Marked = false;
 		this.live = false;
-		for (int i = 0 ; i < LeapList.NODE_SIZE ; i ++){
+		for (int i = 0 ; i < LeapList.NODE_SIZE ; i ++)
+		{
 			data[i] = new LeapSet(0,0);
 		}
 	}

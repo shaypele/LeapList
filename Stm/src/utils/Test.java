@@ -6,7 +6,6 @@ import java.util.Random;
 
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
-import leapListReg.LeapNode;
 
 
 
@@ -14,8 +13,6 @@ public class Test {
 
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
-		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		int arrSize = 300;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
@@ -42,13 +39,10 @@ public class Test {
 			thread1.join();
 			thread2.join();
 			thread3.join();
-		//	thread4.join();
+			//thread4.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
-	      LeapNode[] heads = new LeapNode[2];
-	      heads[0] =list0.GetHeadNode();
-	      heads[1] =list1.GetHeadNode();
 	      
 	      //System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
 	   /*   
@@ -93,17 +87,17 @@ public class Test {
 	      }
 			System.out.println(" Total number of items before delete is " + totItems);*/
 	     
-	/*	threadRQ.start();
+	//	threadRQ.start();
 		threadRem2.start();
 	    threadRem3.start();
 	    threadLook1.start();
 	    try{
-	  //  	threadRQ.join();
+	   // 	threadRQ.join();
 	    	threadRem2.join();
 	    	threadRem3.join();
 	    	threadLook1.join();
 	    }
-	    catch (InterruptedException e) { };*/
+	    catch (InterruptedException e) { };
 	      
 	      long end = System.nanoTime();
 	      /*
@@ -151,9 +145,9 @@ public class Test {
 	      System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
 	}
 	
-	public static void main(String[] args) {	
+	public static void main(String[] args) {
 			
-		doTest();	
+		doTest();
 	}
 
 }

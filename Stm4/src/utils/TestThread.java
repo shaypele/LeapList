@@ -175,8 +175,6 @@ public class TestThread extends Thread {
 	private void removeRand() {
 		
 		
-		LeapList list0 = db.GetListByIndex(0);
-		LeapList list1 = db.GetListByIndex(1);
 		for (int i = arrStart ; i < arrEnd ; i++){
 			
 			db.leapListRemove(db.LeapLists, new long[]{arrKeys[i],arrKeys[i] ,arrKeys[i],arrKeys[i]},4);
@@ -187,30 +185,52 @@ public class TestThread extends Thread {
 	
 	private void insertRand2() {
 
+	
 		
-		LeapList[] lists = new LeapList[10];
+		
+LeapList[] lists = new LeapList[10];
 		
 		for (int i = 0; i < lists.length; i++) {
 			lists[i] = db.GetListByIndex(i);
 		}
 		
+		LeapList[] ListToSend = new LeapList []{lists[4],lists[5],lists[7],lists[2],lists[0],lists[3],lists[8]};
+		long[] keys = new long[7];//{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+		Object[] vals = new Object[7];//{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+		
+		int sizeToRun = 7;
+		
 		for (int i = arrStart ; i < arrEnd ; i++){
-			
-			db.leapListUpdate(new LeapList []{lists[4],lists[5],lists[7],lists[2],lists[0],lists[3],lists[5]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+			for (int j = 0 ; j < sizeToRun ; j++){
+				keys[j] = arrKeys[i];
+				vals[j] = arrKeys[i];
+			}
+			db.leapListUpdate(ListToSend,keys , vals,sizeToRun);
 		}
 	}
 		
 		private void insertRand3() {
 
+	
+			
 			LeapList[] lists = new LeapList[10];
 			
 			for (int i = 0; i < lists.length; i++) {
 				lists[i] = db.GetListByIndex(i);
 			}
 			
+			LeapList[] ListToSend = new LeapList []{lists[2],lists[3],lists[7],lists[8],lists[9],lists[5],lists[0]};
+			long[] keys = new long[7];//{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+			Object[] vals = new Object[7];//{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+			
+			int sizeToRun = 7;
+			
 			for (int i = arrStart ; i < arrEnd ; i++){
-				
-				db.leapListUpdate(new LeapList []{lists[2],lists[3],lists[3],lists[8],lists[9],lists[5],lists[0]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+				for (int j = 0 ; j < sizeToRun ; j++){
+					keys[j] = arrKeys[i];
+					vals[j] = arrKeys[i];
+				}
+				db.leapListUpdate(ListToSend,keys , vals,sizeToRun);
 			}
 		
 	}
@@ -223,9 +243,18 @@ public class TestThread extends Thread {
 			lists[i] = db.GetListByIndex(i);
 		}
 		
+		LeapList[] ListToSend = new LeapList []{lists[0],lists[1],lists[2],lists[3],lists[4],lists[5],lists[6]};
+		long[] keys = new long[7];//{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+		Object[] vals = new Object[7];//{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]};
+		
+		int sizeToRun = 7;
+		
 		for (int i = arrStart ; i < arrEnd ; i++){
-			
-			db.leapListUpdate(new LeapList []{lists[0],lists[1],lists[2],lists[3],lists[6],lists[5],lists[6]}, new long[]{arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]}, new Object[]{arrKeys[i],arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i], arrKeys[i]},7);
+			for (int j = 0 ; j < sizeToRun ; j++){
+				keys[j] = arrKeys[i];
+				vals[j] = arrKeys[i];
+			}
+			db.leapListUpdate(ListToSend,keys , vals,sizeToRun);
 		}
 		
 	}
