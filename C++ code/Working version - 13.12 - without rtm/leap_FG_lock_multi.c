@@ -48,6 +48,8 @@
 #define UNMARK(X) X=get_unmarked_ref(X)
 #define MARK(X) X=make_marked_ptr(X)
 
+#define EINVAL 22
+
 static int gc_id;
 typedef void set_t;
 
@@ -172,12 +174,12 @@ restart_look:
 	// printf("searchin high key %d. Wanted key %d\n",x_next->high,k);
                 if (!x_next->live)
                 {
-				if (counter > 10000) {
-		      printf("C>100 thread is %ud\n",pthread_self());
-				      printf("searching is marked = %d",x_next->isMarked);
-				     printf("next is = %d\n",x_next->next[0] );
-					printf("level is = %d\n",i );
-				      printf("MAX LEVEL IS = %d\n",x->level - 1 );}
+				//if (counter > 10000) {
+		      //rprintf("C>100 thread is %ud\n",pthread_self());
+				      //rprintf("searching is marked = %d",x_next->isMarked);
+				     //rprintf("next is = %d\n",x_next->next[0] );
+					//rprintf("level is = %d\n",i );
+				      //rprintf("MAX LEVEL IS = %d\n",x->level - 1 );}
                     goto restart_look;
                 }
 
@@ -508,7 +510,8 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
     }
 	int c = 0;
 	for(j = 0; j<MAX_ROW; j++)
-    {if (c > 10000){printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n******************\n\n\n\n\n\n\n\n\n");};
+    {
+		//if (c > 10000){printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n******************\n\n\n\n\n\n\n\n\n");};
 		lastLockedNode  = 0x0;
 		isMarked = 0;
 	retry_update:
@@ -571,7 +574,7 @@ if (lastLockedNode != 0x0 && lastLockedNode != n[j]){
 					countLock ++;
 					if (countLock > 1){
 						//printf(" stuck in lock 1. err is %d , thread is %d \n ",err, pthread_self());
-						if (err == 22){ // not initialized , so probably not live
+						if (err == EINVAL){ // not initialized , so probably not live
 						//pthread_mutex_init(&n[j]->lock,NULL);
 							//printf(" err is 22 . live = %d \n",n[j]->live);
 							isLockFailed = 1;
@@ -640,7 +643,7 @@ if (lastLockedNode != 0x0 && lastLockedNode != n[j]){
 						int countLock2 = 0, err2 = 0;
 						while (err2 = pthread_mutex_trylock(&pred->lock)){
 							countLock2 ++;
-							if (err2 == 22 ){
+							if (err2 == EINVAL ){
 								if (countLock2 == 10001 ){
 								printf("\n\n\n\n\n\n\n****************************\n\n\n\n\n\n\n\n");
 								}
@@ -768,41 +771,84 @@ if (lastLockedNode != 0x0 && lastLockedNode != n[j]){
 			goto retry_update;
 		}
 if ( c > 10000){
-printf("C>100 thread is %ud. j is %d\n",pthread_self(),j);
-			printf(" after unlocks \n");
+//rprintf("C>100 thread is %ud. j is %d\n",pthread_self(),j);
+			//rprintf(" after unlocks \n");
 			}	
     }
     critical_exit(ptst);
     return 0;
 }
 
+void unlockPredForRemove(volatile  node_t **pa,volatile  node_t **pa_Node1 ,int highestLocked, int levelOldNode0 )
+{
+	node_t *prevPred = 0x0;
+	 int iterateTill = -1;
+     int level;
 
+    	 if ( highestLocked < levelOldNode0 ){
+    		 iterateTill = highestLocked; 
+    	 }
+    	 else{
+    		 iterateTill = levelOldNode0 - 1;
+    	 }
+    	 // First unlock all pred of node 0->
+		 for (level = 0 ; level <= iterateTill ; level++ ){
+			if ( pa[level]!=prevPred )
+			{
+				pthread_mutex_unlock(&pa[level]->lock);
+				prevPred = pa[level];
+			}
+		 }
+		 
+		 // if needed , unlock rest of preds of node 1->
+		if ( highestLocked >= levelOldNode0 ){
+			iterateTill = highestLocked; 
+			for (; level <= iterateTill ; level++ ){
+				if ( pa_Node1[level]!=prevPred )
+				{
+					pthread_mutex_unlock(&pa_Node1[level]->lock);
+					prevPred = pa_Node1[level];
+				}
+			}
+		}
+
+
+
+	
+}
 
 setval_t set_remove(set_t *l, setkey_t k)
 {
-	#ifdef oioi
     ptst_t *ptst;
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
 	   volatile node_t *preds_node1[MAX_ROW][MAX_LEVEL], *succs_node1[MAX_ROW][MAX_LEVEL];
-    int i, j, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
-    int indicator2 = 0;
+	volatile node_t *pred, *succ, *prevPred = 0x0;   
+    int i, j,  indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
+    int indicator2 = 0,valid = 1;
     node_t *n[MAX_ROW];
     k=k+2; // Avoid sentinel
 
     ptst = critical_enter();
     for(j=0; j<MAX_ROW; j++)
     {
-		byte highestLocked = -1;
-		char[] isMarkedArr = new char[2]; 
+		int highestLocked = -1;
+		char isMarkedArr[2]; 
         isMarkedArr[0] = 0;
         isMarkedArr[1] = 0;
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
     
 retry_remove:
-    
+    	highestLocked = -1;
+		prevPred = 0x0;
+		valid = 1;
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
+		if (pthread_mutex_init(&n[j]->lock, NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        exit(9);
+	    }
 #endif	/* USE_TRIE */
     
 
@@ -814,29 +860,14 @@ retry_last_remove:
         /* If the key is not present, just return */
         if (find(old_node[j][0], k) == 0)
         {
-			if (!oldNode[j][0].live){
+			if (!old_node[j][0]->live){
         		 goto retry_last_remove;
         	 }
             changed[j] = 0;
+			trie_destroy(&n[j]->trie, ptst);
             continue;
         }
-
 /*
-inner_tx:
-        indicator2 = 0;
-        __transaction_atomic
-        {
-            do
-            {
-                old_node[j][1] = old_node[j][0]->next[0];
-            } while ((old_node[j][0]->live) && (is_marked_ref(old_node[j][1])));
-
-            indicator2 = 1;
-        }
-        if (!indicator2)
-            goto inner_tx;
-*/
-
         do
         {
             old_node[j][1] = old_node[j][0]->next[0];
@@ -849,192 +880,230 @@ inner_tx:
             goto retry_last_remove;
 
         total[j] = old_node[j][0]->count;
+*/
+		
+    	 if ( 	isMarkedArr[0] || 
+    			(  !old_node[j][0]->isMarked &&  old_node[j][0]->live ) ){
+    		 
+    		 if (!isMarkedArr[0]){
 
-        if(old_node[j][1])
-        {
-            total[j] = total[j] + old_node[j][1]->count;
-
-            if (!old_node[j][0]->live || !old_node[j][1]->live)
-                goto retry_last_remove;
-
-            if(total[j] <= NODE_SIZE)
-            {
-                merge[j] = 1; 
-            }
-        }
-        n[j]->level = old_node[j][0]->level;    
-        n[j]->low   = old_node[j][0]->low;
-        n[j]->count = old_node[j][0]->count;
-        n[j]->live = 0;
-
-        if(merge[j])
-        {
-            if (old_node[j][1]->level > n[j]->level)
-            {
-                n[j]->level = old_node[j][1]->level;
-            }
-            n[j]->count += old_node[j][1]->count;
-            n[j]->high = old_node[j][1]->high;
-        }
-        else
-        {
-            n[j]->high = old_node[j][0]->high;
-        }
-
-        if (!old_node[j][0]->live)
-            goto retry_last_remove;
-
-        if (merge[j] && !old_node[j][1]->live)
-            goto retry_last_remove;
-
-        changed[j] = remove(old_node[j], n[j], k, merge[j], ptst);
-
-    
-
-    __transaction_atomic 
-    {
-        for(j=0; j<MAX_ROW; j++)
-        {
-            if(changed[j])
-            {
-                if (!old_node[j][0]->live)
-                    __transaction_cancel;
-
-                if (merge[j] && !old_node[j][1]->live)
-                    __transaction_cancel;
-
-                for(i = 0; i < old_node[j][0]->level;i++)
-                {
-                    if (preds[j][i]->next[i] != old_node[j][0])  __transaction_cancel;
-                    if (!(preds[j][i]->live))  __transaction_cancel;
-                    if (old_node[j][0]->next[i]) if (!old_node[j][0]->next[i]->live) __transaction_cancel;
-                }
+				int countLock = 0, err = 0,isLockFailed = 0;
+				while ((err = pthread_mutex_trylock(&old_node[j][0]->lock)) && !isLockFailed){
+					if (err == EINVAL){
+							isLockFailed = 1;
+						}
+				}
+				
+    			
+    			 if (old_node[j][0]->isMarked || !old_node[j][0]->live ){
+					if (!isLockFailed)
+					{
+						pthread_mutex_unlock(&old_node[j][0]->lock);
+					}
 
 
-                if (merge[j])
-                {   
-                    // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
-                    if (old_node[j][0]->next[0] != old_node[j][1])
-                        __transaction_cancel;
+		            trie_destroy(&n[j]->trie, ptst);
+					pthread_mutex_destroy(&n[j]->lock);
+					 
+    				 goto retry_remove;
+    			 }
+    			 old_node[j][0]->isMarked = 1;
+    			 isMarkedArr[0] = 1;
+    		}
+    		 
+    		old_node[j][1] = old_node[j][0]->next[0];
+         	if (old_node[j][1]!= 0 && 
+         		(old_node[j][0]->count + old_node[j][1]->count - 1) <= NODE_SIZE ) 
+         	{
+         		merge[j] = 1;
+         	}
+         	else
+         	{
+         		merge[j] = 0;
+         	}
+         	
+         	// Mark and lock second node
+         	if (merge[j] && !isMarkedArr[1]){
+				if (( pthread_mutex_trylock(&old_node[j][1]->lock)) ){
+					old_node[j][0]->isMarked = 0;
+	    			isMarkedArr[0] = 0;
+					pthread_mutex_unlock(&old_node[j][0]->lock);
+					trie_destroy(&n[j]->trie, ptst);
+					pthread_mutex_destroy(&n[j]->lock);
+					 
+    				 goto retry_remove;
+				}
 
-                    if (old_node[j][1]->level > old_node[j][0]->level)
-                    {   
-                        // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
-                        for (i = 0; i < old_node[j][0]->level; i++)
-                        {
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
-                        }
-                        // For the higher part, we need to check also the preds of that part
-                        for (; i < old_node[j][1]->level; i++)
-                        {
-                            if (preds[j][i]->next[i] != old_node[j][1])  __transaction_cancel;
-                            if (!(preds[j][i]->live))  __transaction_cancel;
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live) __transaction_cancel;
-                        }
+				// if marked keep first locked and try again.
+    			 if (old_node[j][1]->isMarked){
+				 	 pthread_mutex_unlock(&old_node[j][1]->lock);
+					 trie_destroy(&n[j]->trie, ptst);
+					 pthread_mutex_destroy(&n[j]->lock);
+					 
+					goto retry_remove;
+    			 }
+    			 old_node[j][1]->isMarked = 1;
+    			 isMarkedArr[1] = 1;
+         	}
+         	
 
-                    }
-                    else // old_node[0] is higher than old_node[1], just check the next pointers of old_node[1]
-                    {
-                        for (i = 0; i < old_node[j][1]->level; i++)
-                        {
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
-                        }
-                    }
-                }
-
-                // Lock the pointers to the next nodes
-                if(merge[j])
-                {
-                    for(i = 0; i < old_node[j][1]->level; i++)
-                    {
-                        if (old_node[j][1]->next[i] != NULL)
-                        {   
-                            mark_abo(old_node[j][1]->next[i]);
-                            MARK(old_node[j][1]->next[i]);
-                        }
-                    }
-                    for(i = 0; i < old_node[j][0]->level; i++)
-                    {
-                        if (old_node[j][0]->next[i] != NULL)
-                        {   
-                            mark_abo(old_node[j][0]->next[i]);
-                            MARK(old_node[j][0]->next[i]);
-                        }
-                    }
-                }
-                else
-                {   
-                    for(i = 0; i < old_node[j][0]->level; i++)
-                    {
-                        if (old_node[j][0]->next[i] != NULL)
-                        {   
-                            mark_abo(old_node[j][0]->next[i]);
-                            MARK(old_node[j][0]->next[i]);
-                        }
-                    }
-                }
-
-                // Lock the pointers to the current node
-                for(i = 0; i < n[j]->level; i++)
-                {
-                    mark_abo(preds[j][i]->next[i]);
-                    MARK(preds[j][i]->next[i]);
-                }
-
-                old_node[j][0]->live = 0;      
-                if (merge[j])
-                    old_node[j][1]->live = 0;      
-            }
-        }
-        indicator = 1;
-    }
-
-    if(!indicator)
-    {
-        for(j=0; j<MAX_ROW; j++)
-        {
-#ifdef	USE_TRIE
-            trie_destroy(&n[j]->trie, ptst);
-#endif	/* USE_TRIE */
-        }
-        goto retry_remove;
-    }
-
-    
-        if(changed[j])
-        {
-
-            // Update the next pointers of the new node
-            i = 0;
-            if (merge[j])
-            {   
-                for (; i < old_node[j][1]->level; i++)
-                    n[j]->next[i] = get_unmarked_ref(old_node[j][1]->next[i]);
-            }
-            for (; i < old_node[j][0]->level; i++)
-                n[j]->next[i] = get_unmarked_ref(old_node[j][0]->next[i]);
-
-            for(i = 0; i < n[j]->level; i++)
-            {   
-                preds[j][i]->next[i] = n[j];
-            }
-
-            n[j]->live = 1;
+			 /********* Remove Setup ***********/
+	        n[j]->level = old_node[j][0]->level;    
+	        n[j]->low   = old_node[j][0]->low;
+	        n[j]->count = old_node[j][0]->count;
+	        n[j]->live = 0;
+			n[j]->isMarked = 0;
 			
-            if(merge[j])
-                deallocate_node(old_node[j][1], ptst);
 
-            deallocate_node(old_node[j][0], ptst);
-        }
+	        if(merge[j])
+	        {
+	            if (old_node[j][1]->level > n[j]->level)
+	            {
+	                n[j]->level = old_node[j][1]->level;
+	            }
+	            n[j]->count += old_node[j][1]->count;
+	            n[j]->high = old_node[j][1]->high;
+	        }
+	        else
+	        {
+	            n[j]->high = old_node[j][0]->high;
+	        }
 
-        else
-        {
-            deallocate_node(n[j], ptst);
-        }    
+			/********* todo: not needed in grained ?  
+	        if (!old_node[j][0]->live)
+	            goto retry_last_remove;
+
+	        if (merge[j] && !old_node[j][1]->live)
+	            goto retry_last_remove;
+			****************************/
+	        changed[j] = remove(old_node[j], n[j], k, merge[j], ptst);
+			/****** End Remove Setup ***********/
+
+			
+         	//first, lock all prevs of node 0-> Later on, if needed, lock preds of node 1->
+         	int level;
+         	for ( level = 0; valid && ( level < old_node[j][0]->level ); level++){
+				pred = preds[j][level];
+				succ = succs[j][level];
+				if (pred != prevPred){
+
+					int err2 = 0;
+					while (err2 = pthread_mutex_trylock(&pred->lock)){
+						if (err2 == EINVAL ){
+							valid = 0;
+							break;
+						}
+					}
+					if (!valid){
+					break;
+					}
+					
+					highestLocked = level;
+					prevPred = pred;
+				}
+				valid = !pred->isMarked && pred->next[level] == succ;
+			}
+			if (!valid){
+				//preds_node1 won't be used here.
+				unlockPredForRemove(preds[j] ,preds_node1[j] ,highestLocked, old_node[j][0]->level );
+
+				trie_destroy(&n[j]->trie, ptst);
+				pthread_mutex_destroy(&n[j]->lock);
+				goto retry_remove;
+			}	
+			
+			// if node 1's level is bigger than node 0's level, lock preds of higher level of node 1-> 
+         	if ( merge[j] && ( old_node[j][0]->level < old_node[j][1]->level ) ){
+         		// Find preds of node 1->
+				search_predecessors(db[j], old_node[j][1]->high, preds_node1[j], succs_node1[j]);
+         		for(; valid && ( level < old_node[j][1]->level ); level++){
+         			pred = preds_node1[j][level];
+					succ = succs_node1[j][level];
+					if (pred != prevPred){
+
+					int err3 = 0;
+					while (err3 = pthread_mutex_trylock(&pred->lock)){
+						if (err3 == EINVAL ){
+							valid = 0;
+							break;
+						}
+					}
+					if (!valid){
+					break;
+					}
+						
+					highestLocked = level;
+					prevPred = pred;
+					}
+					valid = !pred->isMarked && pred->next[level] == succ;
+				}
+				if (!valid){
+					unlockPredForRemove(preds[j] ,preds_node1[j] ,highestLocked, old_node[j][0]->level );
+
+					trie_destroy(&n[j]->trie, ptst);
+					pthread_mutex_destroy(&n[j]->lock);
+					goto retry_remove;
+				}	
+         	}
+         	
+         	/******** Release and Update **********/
+			
+	        if(changed[j])
+	        {
+				old_node[j][0]->live = 0;      
+	            if (merge[j])
+	                old_node[j][1]->live = 0;     
+					
+	            // Update the next pointers of the new node
+	            i = 0;
+	            if (merge[j])
+	            {   
+	                for (; i < old_node[j][1]->level; i++)
+	                    n[j]->next[i] = old_node[j][1]->next[i];
+	            }
+	            for (; i < old_node[j][0]->level; i++)
+	                n[j]->next[i] = old_node[j][0]->next[i];
+
+	            for(i = 0; i < n[j]->level; i++)
+	            {   
+	                preds[j][i]->next[i] = n[j];
+	            }
+
+	            n[j]->live = 1;
+
+				// Unlock
+	            if(merge[j])
+				{
+					pthread_mutex_unlock(&old_node[j][1]->lock);
+	               
+	            }
+				pthread_mutex_unlock(&old_node[j][0]->lock);
+
+				unlockPredForRemove(preds[j] ,preds_node1[j] ,highestLocked, old_node[j][0]->level );
+
+				//Deallocate
+				 if(merge[j])
+				{
+					 deallocate_node(old_node[j][1], ptst);
+				}
+	            deallocate_node(old_node[j][0], ptst);
+		
+	        }
+	        else
+	        {
+	            deallocate_node(n[j], ptst);
+	        }    
+
+		 /******** Release and Update end **********/
+     	 }
+    	 else
+    	 {
+    		pthread_mutex_destroy(&n[j]->lock);
+            trie_destroy(&n[j]->trie, ptst);
+    	 }    
     }
 
     critical_exit(ptst);
-#endif 
     return 0;
 }
 

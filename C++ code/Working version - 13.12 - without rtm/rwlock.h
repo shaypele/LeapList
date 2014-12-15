@@ -2,7 +2,7 @@
 #define RWLOCK_H__
 
 #define vwLock unsigned long
-#define MAX_ALL_THREADS 1024
+#define MAX_ALL_THREADS 4
 
 static volatile vwLock order = 0;
 static volatile vwLock sync_vars[MAX_ALL_THREADS] = {0,};

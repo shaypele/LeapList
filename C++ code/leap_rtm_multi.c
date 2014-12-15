@@ -157,8 +157,6 @@ static volatile node_t *search_predecessors(node_t *l, setkey_t k, volatile node
     ptst_t *ptst;
     unsigned long cnttt = 0;
 restart_look:
-	//fprintf (stdout, "search pred\n");	
-
     {
         x = l;
 
@@ -473,33 +471,27 @@ retry_update:
         changed[j] = insert(new_node[j], n[j], k, v, overwrite, split[j], ptst);
 
 
-	//printf("Before xBegin\n");
 
    status = _xbegin()  ;
-//printf("xBegin status : %d ", status );
     if ( status == _XBEGIN_STARTED )
     { 
-	//printf("xBegin status : %d \n", status );
         
             if (n[j]->live == 0)
-            {
-				printf("abort 1 ");
-		                _xabort (5);
+            { 
+		            _xabort (5);
 					goto fail_path;
             }
 
             for(i = 0; i < n[j]->level; i++)
             {   
                 if(preds[j][i]->next[i] != n[j])
-				{
-					printf("abort 2 ");
-			                _xabort (5);
+				{ 
+			        _xabort (5);
 					goto fail_path;
             	}	
                 if(n[j]->next[i]) if(!n[j]->next[i]->live)
-				{
-					printf("abort 3 ");
-			              _xabort (5);
+				{ 
+			        _xabort (5);
 					goto fail_path;
             	}
             }
@@ -507,23 +499,21 @@ retry_update:
             for(i = 0; i < max_height[j]; i++)
             {   
                 if(preds[j][i]->next[i] != succs[j][i])
-				{
-					printf("abort 4 ");
-		              	 _xabort (5);
+				{ 
+		            _xabort (5);
 					goto fail_path;
             	}
                 if(!(preds[j][i]->live)) 
-				{
-					printf("abort 5 ");
-		               	 _xabort (5);
+				{ 
+		            _xabort (5);
 					goto fail_path;
             	}
                 if(!(succs[j][i]->live))
 				{
-					printf("abort 6 ");
-		                     _xabort (5);
+ 
+		            _xabort (5);
 					goto fail_path;
-            			}
+            	}
             }
 
 
@@ -534,13 +524,10 @@ retry_update:
                 {
                     if (n[j]->next[i] != NULL)
                     {
-                        //mark_abo(n[j]->next[i]);
-			   if(is_marked_ref(n[j]->next[i]))
-			   {
-				printf("abort 7 ");
-
-		              _xabort (5);
-				goto fail_path;
+					   if(is_marked_ref(n[j]->next[i]))
+					   {
+			              	_xabort (5);
+							goto fail_path;
                         }
 			 
                         MARK(n[j]->next[i]);
@@ -549,43 +536,34 @@ retry_update:
 
                 for(i = 0; i < max_height[j]; i++)
                 {
-                    //mark_abo(preds[j][i]->next[i]);
-		     if(is_marked_ref(preds[j][i]->next[i]))
-			   {
-				printf("abort 8 ");
-				
-		                _xabort (5);
-				
-				goto fail_path;
-                        }
-                    MARK(preds[j][i]->next[i]);
+			       if(is_marked_ref(preds[j][i]->next[i]))
+				   {
+						printf("abort 8 ");
+					
+			            _xabort (5);
+					
+						goto fail_path;
+	               }
+                   MARK(preds[j][i]->next[i]);
                 }
 
                 n[j]->live = 0;
-            }
-
-
-        
-        //indicator = 1;
-		////printfr("bef xEnd\n");
-		if (_xtest())
-		{
+          }
+		  if (_xtest())
+		  {
 			_xend();
-		}
-		////printfr("after xEnd\n");
+		  }
     }
-    else//if(!indicator)
+    else// else, transaction failed.
     {
-fail_path:
-	//printf("Fail: status is %d\n",status);
-
-#ifdef	USE_TRIE
-            /* deallocate the tries */
-            trie_destroy(&new_node[j][0]->trie, ptst);
-            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-#endif	/* USE_TRIE */
+	fail_path:
+	#ifdef	USE_TRIE
+	            /* deallocate the tries */
+	            trie_destroy(&new_node[j][0]->trie, ptst);
+	            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+	#endif	/* USE_TRIE */
         
-        goto retry_update;
+    goto retry_update;
     }
 
 
@@ -692,22 +670,6 @@ retry_last_remove:
             changed[j] = 0;
             continue;
         }
-
-/*
-inner_tx:
-        indicator2 = 0;
-        __transaction_atomic
-        {
-            do
-            {
-                old_node[j][1] = old_node[j][0]->next[0];
-            } while ((old_node[j][0]->live) && (is_marked_ref(old_node[j][1])));
-
-            indicator2 = 1;
-        }
-        if (!indicator2)
-            goto inner_tx;
-*/
 
         do
         {

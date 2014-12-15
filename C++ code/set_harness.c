@@ -283,7 +283,6 @@ static void *thread_start(void *arg)
 #ifdef DO_WRITE_LOG
     get_interval(my_int);
 #endif
-	fprintf (stdout, "Bef Max iter\n");	
     for ( i = 0; (i < MAX_ITERATIONS) && !shared.alarm_time; i++ )
     {
         /* O-3: ignore ; 4-11: proportion ; 12: ins/del */
@@ -300,18 +299,19 @@ static void *thread_start(void *arg)
             ov = v = set_lookup(shared.set, k);
         }
         else if ( ((r>>12)&1) )
-        {*/
-
-		//if (k % 3 != 0){
+        {
+*/
+		if (k % 3 != 0){
             v = (void *)((r&~7)|0x8);
 		//fprintf (stdout, "Before update\n");
             ov = set_update(shared.set, k, v, 1);
-		/*}
+		}
         else
         {
             v = NULL;
+			//printf("enter remove\n");
             ov = set_remove(shared.set, k);
-        }*/
+        }
 
 #ifdef DO_WRITE_LOG
         get_interval(my_int);
@@ -503,7 +503,6 @@ int main (int argc, char **argv)
     }
 #endif
 
-    fprintf (stdout, "before multithreadtest \n");
 
     test_multithreaded ();
 
