@@ -298,10 +298,10 @@ static void *thread_start(void *arg)
         {
             ov = v = set_lookup(shared.set, k);
         }
-        else if ( ((r>>12)&1) )
-        {
+        else if ( ((r>>12)&1) ){
 */
-		if (k % 3 != 0){
+		//if (k % 3 != 0){
+		 if ( ((r>>12)&1) ){
             v = (void *)((r&~7)|0x8);
 		//fprintf (stdout, "Before update\n");
             ov = set_update(shared.set, k, v, 1);
