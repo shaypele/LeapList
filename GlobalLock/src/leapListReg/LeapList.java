@@ -90,8 +90,6 @@ public class LeapList {
 	    return rangeSet.toArray();
 	}
 
-
-
 	/*
 	 * The method receives a low and high value, a Node and an Object arrayList, looks up the keys in the Node and adds
 	 * the corresponding Objects to the arrayList.

@@ -16,6 +16,9 @@ public class LeapListDB {
 		}
 	}
 		
+	/*
+	 * Returns the list for the matching index.
+	 */
 	public LeapList  GetListByIndex (int index){
 		if (index < MAX_ROW){
 			return LeapLists[index];
@@ -25,10 +28,18 @@ public class LeapListDB {
 		}
 	}
 	
+	/*
+	 * The method receives a List and a key.
+	 * It calls the lookup method for the LeapList.
+	 */
 	public Object lookUp (LeapList l, long key){
 		return l.lookUp(key);
 	}
 	
+	/*
+	 * The method receives arrays of LeapLists, keys, values and the size of the arrays.
+	 * It updates the key[i] value[i] pair for LeapList[i], by calling updateSetup() and updateRelease().
+	 */
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
 		LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
 		LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
@@ -51,7 +62,7 @@ public class LeapListDB {
 				// Get predecessors here, but create new nodes only after lock is acquired
 				ll[i].searchPredecessor(keys [i], pa[i], na[i]);	
 				n[i] = na[i][0];
-				// TODO: is needed.? it was put here to prevent a scneraio where n[i] is change by a different predecessor..
+				
 				if (lastLockedNode != null && lastLockedNode != n[i]){
 					if (lastLockedNode.nodeLock.isLocked()){
 						lastLockedNode.unlock();
@@ -114,8 +125,11 @@ public class LeapListDB {
 		}	
 		
 	}
-	
-	byte getLevel(){
+
+	/*
+	 * The method uses Random() to return a byte value with a 50% chance increment starting from 1,
+	 */
+	private byte getLevel(){
 		Random rand = new Random();
 		long r = rand.nextLong();
 		byte l = 1;
@@ -127,7 +141,11 @@ public class LeapListDB {
 		return l;
 	}
 	
-	 void updateSetup (  LeapList l, long key, Object value,  
+	/*
+	 * The method checks if the matching Node is
+	 * at its maximum size and if so splits it. It then calls the insert method to copy the values to the updated node.
+	 */
+	private void updateSetup (  LeapList l, long key, Object value,  
 										LeapNode n, LeapNode [] newNode, int [] maxHeight, boolean[] split, boolean[] changed, int i){
 			if (n.count == LeapList.NODE_SIZE){
 				split[i] = true;
@@ -143,7 +161,10 @@ public class LeapListDB {
 			changed [i] = insert(newNode, n, key, value, split[i]);
 	}
 	
-	boolean insert (LeapNode[] newNode, LeapNode n, long key, Object val, boolean split){
+	/*
+	 * The method fills in the values of the new Node\s and adds the key-value pair.
+	 */
+	private boolean insert (LeapNode[] newNode, LeapNode n, long key, Object val, boolean split){
 		boolean changed = false;
 		int m = 0;
 		int i = 0;
@@ -223,7 +244,10 @@ public class LeapListDB {
 		return changed;
 	}
 	
-	void  updateRelease (LeapNode[] pa, LeapNode[] na, LeapNode n, LeapNode[] newNode, boolean[] split,
+	/*
+	 * The method inserts the new Node\s into the list by updating the relevant pointers using the predecessor and successor arrays.
+	 */
+	private void  updateRelease (LeapNode[] pa, LeapNode[] na, LeapNode n, LeapNode[] newNode, boolean[] split,
 									boolean[] changed, int j){
 			int i = 0;
 			
@@ -277,6 +301,11 @@ public class LeapListDB {
 		
 	}
 	
+	/*
+	 * The method receives arrays of LeapLists, keys, values and the size of the arrays.
+	 * It removes the key[i] value[i] pair for LeapList[i] (if exists), by calling the searchPredecessor(),
+	 * removeSetup() and removeRelease().
+	 */
 	public void leapListRemove(LeapList[] ll, long[] keys, int size)
 	{
 	
@@ -449,6 +478,9 @@ public class LeapListDB {
 	    
 	}
 
+	/*
+	 * The method removes the Node from the list by updating the relevant pointers using the predecessor and successor arrays.
+	 */
 	private void RemoveReleaseAndUpdate(LeapNode[] pa,
 			LeapNode[] na, LeapNode n, LeapNode[] oldNode,
 			boolean[] merge, boolean[] changed, int j,LeapNode[] pa_Node1,LeapNode[] na_Node1) {
@@ -494,7 +526,10 @@ public class LeapListDB {
 	        } 
 	}
 	
-	Object find(LeapNode node,long key){
+	/*
+	 * The method searches for a key in a given Node and return the matching object if found. Return null if not.
+	 */
+	private Object find(LeapNode node,long key){
 		
 		if(node!=null && node.live){
 			if (node.count > 0)
@@ -521,7 +556,11 @@ public class LeapListDB {
 		
 	}
 
-	void RemoveSetup(	LeapList l, long key,
+	/*
+	 * The method checks the count field and determines if
+	 * the Node needs to be split after the removal of the pair. It than continues to copy the old values to the new Node\s.
+	 */
+	private void RemoveSetup(	LeapList l, long key,
 						LeapNode n, LeapNode[] oldNode,
 						boolean[] merge, boolean[] changed, int j) 
 	{        
@@ -547,6 +586,9 @@ public class LeapListDB {
         changed[j] = remove(oldNode, n, key, merge[j]);
 	}
 	
+	/*
+	 * The method copies the updated data field to the new nodes.
+	 */
 	private boolean remove(LeapNode[] old_node, LeapNode n,
 				 long k, boolean merge) {
 		int i,j;
@@ -579,6 +621,9 @@ public class LeapListDB {
 	    return changed;
 	}
 
+	/*
+	 * The method calls the rangeQuery method for the list.
+	 */
 	public Object[] RangeQuery (LeapList l,long low, long high){
 		return l.RangeQuery(low, high);
 	}
