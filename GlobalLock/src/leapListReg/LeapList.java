@@ -22,8 +22,11 @@ public class LeapList {
 		return this.head;
 	}
  	
-	
-	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
+	/*
+	 * The method receives a key and two Node arrays and returns the Node with the range that matches the key.
+	 * On the way it fills the predecessor and successor arrays.
+	 */
+	public LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
 		
@@ -46,6 +49,9 @@ public class LeapList {
 		return x_next;
 	}
 	
+	/*
+	 * The function receives a key and returns the value object matching that key or null if it does not exist.
+	 */
 	public Object lookUp (long key){
 		int index ;
 		Object retVal = null;
@@ -61,6 +67,9 @@ public class LeapList {
 		return retVal;
 	}
 
+	/*
+	 * The function receives a low and high keys and returns an array of objects matching the keys.
+	 */
 	public Object[] RangeQuery (long low, long high){
 	    LeapNode n;
 	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
@@ -83,7 +92,11 @@ public class LeapList {
 
 
 
-	LeapNode addValuesToSet(long low, long high, LeapNode n,
+	/*
+	 * The method receives a low and high value, a Node and an Object arrayList, looks up the keys in the Node and adds
+	 * the corresponding Objects to the arrayList.
+	 */
+	private LeapNode addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
 		for (int i = 0; i < n.count ; i++)
 		{
