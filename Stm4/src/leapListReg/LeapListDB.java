@@ -237,10 +237,7 @@ public class LeapListDB {
 	private void updateLT (int size, LeapNode [][] pa, LeapNode [][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight,
 								boolean[] changed,Boolean stopLoop,int j) throws TransactionException  {
 		int i;
-		//Retry  ++;
-		//System.out.print("in upadtelt \n");
-		//if (1  > 0)
-		//throw new TransactionException();
+		
         if (n[j].live == false)
            throw new TransactionException();
 
