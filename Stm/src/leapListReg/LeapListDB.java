@@ -24,7 +24,10 @@ public class LeapListDB {
 		}
 	}
 	
-	
+	/*
+	 *function gets input int index and return the list from the 
+	 * lists array in the appropriate index, if there is not such lists return null;
+	 */
 	public LeapList  GetListByIndex (int index){
 		if (index < MAX_ROW)
 		{
@@ -36,6 +39,10 @@ public class LeapListDB {
 		}
 	}
 	
+	/*
+	 *the function return byte that represent the level for the node.
+	 * the chance to get level = i is (1/2)^i
+	 */
 	private byte getLevel(){
 		Random rand = new Random();
 		long r = rand.nextLong();
@@ -49,6 +56,10 @@ public class LeapListDB {
 		return l;
 	}
 	
+	/*
+	 *the functio gets Node and key and return the value object if the key 
+	 * is in the Node and if not it returns null.
+	 */
 	private Object find(LeapNode node,long key){
 		
 		if(node!=null)
@@ -71,17 +82,29 @@ public class LeapListDB {
 	    }
 	    return null;	
 	}
-
+	
+	/*
+	 *the function gets LeapList and key and return the value object 
+	 * associate with the key in the list or null if the key don't exist in the list
+	 */
 	public Object lookUp (LeapList l, long key){
 		
 			return l.lookUp(key);
 	}
 	
+	/*
+	 *the function gets LeapList low key and high key 
+	 * and returns set of objects values that associated with keys from the given range.
+	 */
 	public Object[] RangeQuery (LeapList l,long low, long high){
 		
 		return l.RangeQuery(low, high);
 	}
 	
+	/*
+	 *the function gets set of LeapList, set of keys, set of values and the sets size.
+	 * and update/insert the key[i] value[i] pair in LeapList[i]
+	 */
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
 		Boolean stopLoop = true;
 		long[] myKeys = keys.clone();
@@ -120,6 +143,11 @@ public class LeapListDB {
 		}while(!stopLoop);
 	}
 
+	/*
+	 *the function gets LeapList[], keys[], values[], size, LeapNode[][] pa, LeapNode[][] na, 
+	 *LeapNode[] n, LeapNode [][] newNode, maxHeight[], boolean split[], boolean changed[] and current list index i.
+	 *the function use the functions searchPredecessor and insert to update the inputs and the inputs fields.
+	 */
 	private void updateSetup (LeapList[] ll, long [] keys, Object [] values, int size, LeapNode[][] pa, LeapNode[][] na, 
 										LeapNode[] n, LeapNode [][] newNode, int [] maxHeight, boolean[] split, boolean[] changed,int i){
 		
@@ -141,6 +169,10 @@ public class LeapListDB {
 			changed [i] = insert(newNode[i], n[i], keys[i], values[i], split[i]);
 	}
 	
+	/*
+	 *update the fields of the newNode input from the fields of the input of node n
+	 * in the correct way by the input boolean split.
+	 */
 	private boolean insert (LeapNode[] newNode, LeapNode n, long key, Object val, boolean split)
 	{
 		boolean changed = false;
@@ -232,6 +264,12 @@ public class LeapListDB {
 		return changed;
 	}
 	
+	/*
+	 *this function use the deuce Stm java agent and it trying to mark all the nodes
+	 * we need to change atomically and if it didn't succeed then it roll back 
+	 * and we throw TransactionException that we catch outside in leapListUpdate and start trying
+	 * all over again for all the LeapLists.
+	 */
 	@Atomic(retries=1)
 	private void updateLT (int size, LeapNode [][] pa, LeapNode [][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight,
 								boolean[] changed,Boolean stopLoop,int j) throws TransactionException  {
@@ -299,6 +337,9 @@ public class LeapListDB {
         }
 	}
 
+	/*
+	 *the function do the actually list changes and then unmark all the nodes that we marked. 
+	 */
 	private void updateRelease (int size, LeapNode[][] pa, LeapNode[][] na, LeapNode[] n, LeapNode[][] newNode, int[] maxHeight, boolean[] split,
 									boolean[] changed,int j){
 		
@@ -369,6 +410,10 @@ public class LeapListDB {
 		
 	}
 	
+	/*
+	 *the function gets set of LeapList, set of keys, and the sets size.
+	 * and remove the key[i] and the value[i] that associated with key[i] in LeapList[i]
+	 */
 	public void leapListRemove(LeapList[] ll, long[] keys, int size)
 	{
 		Boolean stopLoop = true;
@@ -407,6 +452,11 @@ public class LeapListDB {
         }while(!stopLoop);
 	}
 	
+	/*
+	 *the function gets LeapList[], keys[], values[], size, LeapNode[][] pa, LeapNode[][] na, 
+	 *LeapNode[] n, LeapNode [][] newNode, maxHeight[], boolean split[], boolean changed[] and current list index i.
+	 *the function use the functions searchPredecessor and remove to update and setup the inputs and the inputs fields.
+	 */
 	private void RemoveSetup(LeapList[] ll, long[] keys,int size, LeapNode[][] pa,
 			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
 			boolean[] merge, boolean[] changed, int j) 
@@ -485,6 +535,10 @@ public class LeapListDB {
 			}while(lastRemove);
 	}
 	
+	/*
+	 *update the fields of the n input from the fields of the input of old_node
+	 *in the correct way by the input boolean merge.
+	 */
 	private boolean remove(LeapNode[] old_node, LeapNode n,
 			 long k, boolean merge) {
 	int i,j;
@@ -518,6 +572,12 @@ public class LeapListDB {
    return changed;
 }
 	
+	/*
+	 *this function use the deuce Stm java agent and it trying to mark all the nodes
+	 * we need to change atomically and if it didn't succeed then it roll back 
+	 * and we throw TransactionException that we catch outside in leapListRemove and start trying
+	 * all over again for all the LeapLists.
+	 */
 	@Atomic(retries = 1)
 	private void RemoveLT(int size, LeapNode[][] pa, LeapNode[][] na,
 			LeapNode[] n, LeapNode[][] oldNode, boolean[] merge,
@@ -671,6 +731,9 @@ public class LeapListDB {
         }
 	}
 
+	/*
+	 *the function do the actually list changes and then unmark all the nodes that we marked. 
+	 */
 	private void RemoveReleaseAndUpdate(int size, LeapNode[][] pa,
 			LeapNode[][] na, LeapNode[] n, LeapNode[][] oldNode,
 			boolean[] merge, boolean[] changed, int j) {
