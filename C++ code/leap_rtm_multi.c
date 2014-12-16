@@ -727,8 +727,6 @@ retry_last_remove:
 
     if (_xbegin()  == _XBEGIN_STARTED )
     {
-        for(j=0; j<MAX_ROW; j++)
-        {
             if(changed[j])
             {
                 if (!old_node[j][0]->live)
@@ -819,7 +817,6 @@ retry_last_remove:
                 if (merge[j])
                     old_node[j][1]->live = 0;      
             }
-        }
 		if (_xtest())
 		{
 			_xend();
