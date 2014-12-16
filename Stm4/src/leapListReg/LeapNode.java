@@ -4,10 +4,6 @@ import utils.Trie;
 
 
 
-
-
-
-
 public class LeapNode {
 	
 	volatile boolean live ;
