@@ -13,7 +13,7 @@ public class Test {
 
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
-		int arrSize = 600;
+		int arrSize = 9999;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
