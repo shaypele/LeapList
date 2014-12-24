@@ -1,8 +1,7 @@
 package leapListReg;
 
 
-import java.util.Random;
-
+import java.util.concurrent.ThreadLocalRandom;
 import utils.Trie;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -82,8 +81,8 @@ public class LeapListDB {
 	 * The method uses Random() to return a byte value with a 50% chance increment starting from 1,
 	 */
 	private byte getLevel(){
-		Random rand = new Random();
-		long r = rand.nextLong();
+		//Random rand = new Random();
+		long r = ThreadLocalRandom.current().nextLong();
 		byte l = 1;
 		r = (r >> 4) & ((1 << (LeapList.MAX_LEVEL - 1)) -1);
 		while ((r & 1)  > 0){

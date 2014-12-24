@@ -1,7 +1,6 @@
 package leapListReg;
 
-
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import org.deuce.Atomic;
 import org.deuce.transaction.TransactionException;
 
@@ -42,8 +41,8 @@ public class LeapListDB {
 	 */
 	private byte getLevel()
 	{
-		Random rand = new Random();
-		long r = rand.nextLong();
+		//Random rand = new Random();
+		long r = ThreadLocalRandom.current().nextLong();
 		byte l = 1;
 		r = (r >> 4) & ((1 << (LeapList.MAX_LEVEL - 1)) -1);
 		while ((r & 1)  > 0){
