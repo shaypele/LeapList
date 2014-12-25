@@ -13,16 +13,16 @@ public class Test {
 
 	public static void doTest(){
 		LeapListDB db =	new LeapListDB();
-		int arrSize = 9999;
+		int arrSize = 1000000;
 		long[] arrRand = new long[arrSize];
 		Random rand = new Random();
 		for (int i = 0 ; i < arrSize ; i++){
-			arrRand [i] = Math.abs(rand.nextInt()); 
+			arrRand [i] = Math.abs(rand.nextInt(100000)); 
 		}
 		TestThread thread1 = new TestThread( db , 4 , arrRand, 0 , arrSize /3);
-		TestThread thread2 = new TestThread( db , 8 , arrRand, arrSize /3 ,arrSize * 2/3);
-		TestThread thread3 = new TestThread( db , 9 , arrRand, arrSize * 2/3 ,arrSize);
-		TestThread thread4 = new TestThread( db , 8 , arrRand, arrSize  /2, arrSize );
+		TestThread thread2 = new TestThread( db , 4 , arrRand, arrSize /3 ,arrSize * 2/3);
+		TestThread thread3 = new TestThread( db , 4 , arrRand, arrSize * 2/3 ,arrSize);
+		TestThread thread4 = new TestThread( db , 4 , arrRand, arrSize  /2, arrSize );
 		TestThread threadRem2 = new TestThread( db , 5 , arrRand, arrSize / 3 ,arrSize * 2 /3);
 		TestThread threadRem3 = new TestThread( db , 5 , arrRand, arrSize * 2 /3, arrSize );
 		TestThread threadRQ = new TestThread( db , 6 , arrRand, 0 , arrSize / 3);
@@ -32,14 +32,14 @@ public class Test {
 		thread1.start();
 		thread2.start();
 		thread3.start();
-		//thread4.start();
+		thread4.start();
 
 		
 		try {
 			thread1.join();
 			thread2.join();
 			thread3.join();
-			//thread4.join();
+			thread4.join();
 	      }
 	      catch (InterruptedException e) { };
 	      
@@ -142,7 +142,7 @@ public class Test {
 			System.out.println(" OK data is sorted! ");
 	}*/
 	      
-	      System.out.println(" Fine Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
+	      System.out.println(" Fineeee Grained Lock :  Time Elapsed : " + ((end - start) / 1000) / 1000 + "\n");
 	}
 	
 	public static void main(String[] args) {

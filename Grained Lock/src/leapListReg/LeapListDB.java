@@ -334,8 +334,8 @@ public class LeapListDB {
 			     oldNode[j][0] = na[j][0];
 			     byte highestLocked = -1;
 			     
-			     /* If the key is not present, just return */
-
+			     /* If the key is not present, just return 
+			      * In case, a node was previously locked, unlock it*/
 		         if (find(oldNode[j][0], keys[j]) == null)
 		         {
 		        	 if (!oldNode[j][0].live){
@@ -343,8 +343,38 @@ public class LeapListDB {
 		        	 }
 		        		 
 		        	 changed[j] = false;
-		             break;
+		        	 
+		        	 oldNode[j][1] = oldNode[j][0].getNext(0);
+		 			if (oldNode[j][0].Marked && isMarkedArr[0]){
+	 					oldNode[j][0].unlock();
+		 				oldNode[j][0].Marked = false;
+		 				isMarkedArr[0] = false;
+		 			}
+		 				
+	 				if (oldNode[j][1]!=null && oldNode[j][1].Marked && isMarkedArr[1]){
+	 					oldNode[j][1].unlock();
+		 				oldNode[j][1].Marked = false;
+		 				isMarkedArr[1] = false;
+	 				}
+		            break;
 		         }
+		        
+		        // Find out if it's a merge or not.
+		         // Merge if it's there are less elements two nodes than the merge threshold.
+		         // Merge & split thresholds should be different to avoid constant merge/split 
+		        oldNode[j][1] = oldNode[j][0].getNext(0);
+		 		if (oldNode[j][1]!= null && 
+		          		(oldNode[j][0].count + oldNode[j][1].count - 1) <= LeapList.NODE_SIZE - 10 ) 
+		 		{
+		          		merge[j] = true;
+		 		}
+		 		else
+		 		{
+		 			int count1 = 0;
+		 			if (oldNode[j][1] != null )
+		 				count1 = oldNode[j][1].count;
+		 			merge[j] = false;
+		 		}
 		         
 			     try{
 			    	 LeapNode pred,succ, prevPred =null;
@@ -352,27 +382,54 @@ public class LeapListDB {
 			    	 if ( 	isMarkedArr[0] || 
 			    			(  !oldNode[j][0].Marked &&  oldNode[j][0].live ) ){
 			    		 
-			    		 if (!isMarkedArr[0]){
-			    			 oldNode[j][0].lock();
-			    			 if (oldNode[j][0].Marked){
-			    				 oldNode[j][0].unlock();
-			    				 continue;
-			    			 }
-			    			 oldNode[j][0].Marked = true;
-			    			 isMarkedArr[0] = true;
+							if (merge[j] && !(isMarkedArr[1] || 
+													(  !oldNode[j][1].Marked &&  oldNode[j][1].live ))  )
+							{
+								continue;
+							}
+			    		if ( !merge[j] )
+			    		{
+				    		if (!isMarkedArr[0])
+				    		{
+				    			 oldNode[j][0].lock();
+				    			 if (oldNode[j][0].Marked){
+				    				 oldNode[j][0].unlock();
+				    				 continue;
+				    			 }
+				    			 oldNode[j][0].Marked = true;
+				    			 isMarkedArr[0] = true;
+				    		}
+			    		}
+			    		else
+			    		{
+			    			if (!isMarkedArr[0])
+				    		{
+			    				// Lock old node 1
+			    				if (!isMarkedArr[1])
+					    		{
+					    			 oldNode[j][1].lock();
+					    			 if (oldNode[j][1].Marked){
+					    				 oldNode[j][1].unlock();
+					    				 continue;
+					    			 }
+					    			 oldNode[j][1].Marked = true;
+					    			 isMarkedArr[1] = true;
+					    		}
+			    				
+			    				// Lock old node 0
+			    				 oldNode[j][0].lock();
+				    			 if (oldNode[j][0].Marked){
+				    				 oldNode[j][0].unlock();
+				    				 continue;
+				    			 }
+				    			 oldNode[j][0].Marked = true;
+				    			 isMarkedArr[0] = true;
+				    		}
 			    		}
 			    		 
-			    		oldNode[j][1] = oldNode[j][0].getNext(0);
-			         	if (oldNode[j][1]!= null && 
-			         		(oldNode[j][0].count + oldNode[j][1].count - 1) <= LeapList.NODE_SIZE ) 
-			         	{
-			         		merge[j] = true;
-			         	}
-			         	else
-			         	{
-			         		merge[j] = false;
-			         	}
-			         	
+			    		 
+			    		 
+			    		 
 			         	// Mark and lock second node
 			         	if (merge[j] && !isMarkedArr[1]){
 			         		 if (!oldNode[j][1].tryLock()){
@@ -487,6 +544,16 @@ public class LeapListDB {
 		 
 	        if(changed[j])
 	        {
+	        	
+	        	  if(merge[j])
+	            {
+	            	oldNode[1].live = false;
+	            	oldNode[1].trie=null;
+	            }
+
+	            oldNode[0].live = false;
+	            oldNode[0].trie=null;
+	        	
 	            // Update the next pointers of the new node
 	            int i=0;
 	            if (merge[j])
@@ -511,14 +578,7 @@ public class LeapListDB {
 	            }
 	            
 	            n.live = true;
-	            if(merge[j])
-	            {
-	            	oldNode[1].live = false;
-	            	oldNode[1].trie=null;
-	            }
-
-	            oldNode[0].live = false;
-	            oldNode[0].trie=null;
+	          
 	        }
 	        else
 	        {

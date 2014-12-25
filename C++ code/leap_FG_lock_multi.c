@@ -705,7 +705,7 @@ void unlockPredForRemove(volatile  node_t **pa,volatile  node_t **pa_Node1 ,int 
 		 }
 		 
 		 // if needed , unlock rest of preds of node 1->
-		if ( highestLocked >= levelOldNode0 ){
+		if ( pa_Node1 != 0 &&  highestLocked >= levelOldNode0 ){
 			iterateTill = highestLocked; 
 			for (; level <= iterateTill ; level++ ){
 				if ( pa_Node1[level]!=prevPred )
@@ -798,7 +798,7 @@ retry_last_remove:
 		
 		old_node[j][1] = old_node[j][0]->next[0];
 		if (old_node[j][1]!= 0 && 
-         		(old_node[j][0]->count + old_node[j][1]->count - 1) <= NODE_SIZE - 10 ) 
+         		(old_node[j][0]->count + old_node[j][1]->count - 1) <= NODE_SIZE - 20 ) 
 		{
          		merge[j] = 1;
 		}
@@ -811,8 +811,8 @@ retry_last_remove:
     	 if ( 	(isMarkedArr[0] || 
     			(  !old_node[j][0]->isMarked &&  old_node[j][0]->live ))  ){
 				// if node is marked and not by this thread try to search the node once more.
-				if (!(merge[j] && ( 	(isMarkedArr[1] || 
-										(  !old_node[j][1]->isMarked &&  old_node[j][1]->live ))  ) ))
+				if (merge[j] && !(isMarkedArr[1] || 
+										(  !old_node[j][1]->isMarked &&  old_node[j][1]->live ))  )
 				{
 					goto fail_merge;
 				}
@@ -938,6 +938,7 @@ retry_last_remove:
 			
          	//first, lock all prevs of node 0-> Later on, if needed, lock preds of node 1->
          	int level;
+			
          	for ( level = 0; valid && ( level < old_node[j][0]->level ); level++){
 				pred = preds[j][level];
 				succ = succs[j][level];
@@ -961,8 +962,7 @@ retry_last_remove:
 			}
 			if (!valid){
 				//preds_node1 won't be used here.
-				unlockPredForRemove(preds[j] ,preds_node1[j] ,highestLocked, old_node[j][0]->level );
-
+				unlockPredForRemove(preds[j] ,0x0 ,highestLocked, old_node[j][0]->level );
 				trie_destroy(&n[j]->trie, ptst);
 				pthread_mutex_destroy(&n[j]->lock);
 				goto retry_remove;
@@ -1019,12 +1019,24 @@ retry_last_remove:
 	            }
 	            for (; i < old_node[j][0]->level; i++)
 	                n[j]->next[i] = old_node[j][0]->next[i];
-
-	            for(i = 0; i < n[j]->level; i++)
-	            {   
-	                preds[j][i]->next[i] = n[j];
-	            }
-
+			if (merge[j])	
+			{
+				for(i = 0; i < old_node[j][0]->level; i++)
+	            		{   
+	               		 preds[j][i]->next[i] = n[j];
+	            		}
+				for(; i < old_node[j][1]->level; i++)
+	            		{   
+	               		 preds_node1[j][i]->next[i] = n[j];
+	            		}
+			}
+			else
+			{
+	            		for(i = 0; i < n[j]->level; i++)
+	            		{   
+	               		 preds[j][i]->next[i] = n[j];
+	            		}
+			}
 	            n[j]->live = 1;
 
 				// Unlock
@@ -1054,9 +1066,11 @@ retry_last_remove:
      	 }
     	 else
     	 {
-		 fail_merge:
-    		pthread_mutex_destroy(&n[j]->lock);
-            trie_destroy(&n[j]->trie, ptst);
+		fail_merge:
+     		pthread_mutex_destroy(&n[j]->lock);
+              trie_destroy(&n[j]->trie, ptst);
+		goto retry_remove;
+
     	 }    
     }
 
