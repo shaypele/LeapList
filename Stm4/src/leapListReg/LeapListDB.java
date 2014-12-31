@@ -735,11 +735,11 @@ public class LeapListDB {
 	            
 	            n[j].live = true;
 	            
-	            if(merge[j])
-	            {
-	            	oldNode[j][1].trie=null;
-	            }
-	            oldNode[j][0].trie=null;
+	          //  if(merge[j])
+	            //{
+	            	//oldNode[j][1].trie=null;
+	            //}
+	            //oldNode[j][0].trie=null;
 	        }
 	        else
 	        {

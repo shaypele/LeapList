@@ -62,9 +62,15 @@ public class MyThread extends Thread {
 	}
 	
 	public void run(){
-		for (int i = indexStart; i < indexStop; i++) {
-			if (done.value)
+		int i = indexStart;
+		while (true) {
+			if (done.value){
 				break;
+			}
+			if (i == indexStop){
+				System.out.print("array too small!!! increase array size");
+			}
+			
 			switch (opArr[i]){
 				case 0:
 					lookup(keyArr[i]);
@@ -80,6 +86,7 @@ public class MyThread extends Thread {
 					remove(keyArr[i]);
 					break;
 				}
+			i++;
 		}
 		
 		totCounter = rangeCounter + lookCounter + updateCounter +removeCounter;
