@@ -18,7 +18,6 @@ public class Test1 {
     static long endTime;
     static PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<Boolean>(false);
     static PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
-<<<<<<< HEAD
     static final int arrSize = 10000000;
     static final int initSize = arrSize/1000; 
     static int numberOfLists;
@@ -26,14 +25,6 @@ public class Test1 {
 	public static void main(String[] args) {
 		if (args.length != 5){
 			System.out.println("not enough arguments: <number of Threads> <max key> <key Range> <seconds> <number of lists>");
-=======
-    static final int arrSize = 1000000;
-    static final int initSize = 10000;
-    
-	public static void main(String[] args) {
-		if (args.length != 4){
-			System.out.println("not enough arguments");
->>>>>>> origin/master
 			return;
 		}
 		try {
@@ -168,7 +159,7 @@ public class Test1 {
 		System.out.println("\nNumber of range quaries: " + rangeCounter);
 		System.out.println("\nNumber of updates: " + updateCounter);
 		System.out.println("\nNumber of removes: " + removeCounter);
-		System.out.println("Total number of successes: " + totCounter + "\nOps per seconds: " +  totCounter/((endTime - startTime)/1000) + "\n");
+		System.out.println("\nTotal number of successes: " + totCounter + "\nOps per seconds: " +  totCounter/((endTime - startTime)/1000) + "\n");
 		
 		return;
 		

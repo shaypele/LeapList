@@ -81,7 +81,6 @@ public class MyThread extends Thread {
 	}
 	
 	public void run(){
-<<<<<<< HEAD
 		int i = indexStart;
 		int j = indexStart;
 		while (true) {
@@ -93,12 +92,6 @@ public class MyThread extends Thread {
 			}
 			
 			switch (opArr[j]){
-=======
-		for (int i = indexStart; i < indexStop; i++) {
-			if (done.value)
-				break;
-			switch (opArr[i]){
->>>>>>> origin/master
 				case 0:
 					lookup(keyArr[i]);
 					i++;
@@ -122,10 +115,7 @@ public class MyThread extends Thread {
 					i+=numberOfLists;
 					break;
 				}
-<<<<<<< HEAD
 			j++;
-=======
->>>>>>> origin/master
 		}
 		
 		totCounter = rangeCounter + lookCounter + updateCounter +removeCounter;

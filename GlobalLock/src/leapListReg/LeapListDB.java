@@ -12,7 +12,6 @@ public class LeapListDB {
 	public LeapList[] LeapLists;
 	
 	private final ReentrantLock dbLock = new ReentrantLock();
-
 	
 	public LeapListDB (int numberOfLists) {
 		MAX_ROW = numberOfLists;
