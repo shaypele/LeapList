@@ -301,10 +301,10 @@ public class LeapListDB {
 		                pa[i].next[i] = n;
 		            }
 		            n.live = true;
-		           // if(merge[k])
-		            //	oldNode[1].trie=null;
+		            if(merge[k])
+		            	oldNode[1].trie=null;
 
-		            //oldNode[0].trie=null;
+		            oldNode[0].trie=null;
 		        }  
 	} 
 
