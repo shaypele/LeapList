@@ -9,12 +9,14 @@ import utils.Trie;
 
 public class LeapListDB {
 	
-	public static final  int MAX_ROW = 10;
+	public static final  int MAX_ROW;
 	public LeapList[] LeapLists = new LeapList[MAX_ROW];
 
 	
-	public LeapListDB () 
+	public LeapListDB (int numberOfLists) 
 	{
+		MAX_ROW = numberOfLists;
+		LeapLists = new LeapList[MAX_ROW];
 		for (int i=0; i < MAX_ROW ; i++)
 		{
 			LeapLists[i] = new LeapList();

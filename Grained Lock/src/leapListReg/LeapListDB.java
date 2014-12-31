@@ -4,10 +4,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import utils.Trie;
 
 public class LeapListDB {
-	static final  int MAX_ROW = 10;
-	public volatile LeapList[] LeapLists = new LeapList[MAX_ROW];
+	int MAX_ROW;
+	public volatile LeapList[] LeapLists;
 	
-	public LeapListDB () {
+	public LeapListDB (int numOfLists) {
+		MAX_ROW = numOfLists;
+		LeapLists = new LeapList[MAX_ROW];
 		for (int i=0; i < MAX_ROW ; i++)
 		{
 			LeapLists[i] = new LeapList();

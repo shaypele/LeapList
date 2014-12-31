@@ -19,11 +19,12 @@ public class Test1 {
     static PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<Boolean>(false);
     static PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
     static final int arrSize = 10000000;
-    static final int initSize = arrSize/1000;
+    static final int initSize = arrSize/1000; 
+    static int numberOfLists;
     
 	public static void main(String[] args) {
-		if (args.length != 4){
-			System.out.println("not enough arguments: <number of Threads> <max key> <key Range> <seconds>");
+		if (args.length != 5){
+			System.out.println("not enough arguments: <number of Threads> <max key> <key Range> <seconds> <number of lists>");
 			return;
 		}
 		try {
@@ -31,13 +32,39 @@ public class Test1 {
 			maxKey = Integer.parseInt(args[1]);
 			keyRange = Integer.parseInt(args[2]);
 		    seconds = Integer.parseInt(args[3]);
+		    numberOfLists = Integer.parseInt(args[4]);
 		
 		} catch(NumberFormatException e){
 			System.out.println("arguments are not all ints");
 			return;
 		}
 		
-		LeapListDB db =	new LeapListDB();
+		if (numOfThreads < 1){
+			System.out.println("Must have at least one thread");
+			return;
+		}
+		
+		if (maxKey < 1){
+			System.out.println ("must have more than one key");
+			return;
+		}
+		
+		if (keyRange < 1){
+			System.out.println("key range must be at least 1");
+			return;
+		}
+		
+		if (seconds < 1){
+			System.out.println("Must work for more than 1 second");
+			return;
+		}
+		
+		if (numberOfLists < 1){
+			System.out.println("Must have at least one list");
+			return;
+		}
+		
+		LeapListDB db =	new LeapListDB(numberOfLists);
 		int [] keyArr = new int [arrSize];
 		int [] opArr = new int [arrSize];
 		Random rand = new Random();
@@ -63,9 +90,17 @@ public class Test1 {
 		
 		System.out.println("filling list");
 		
-		for (int i = 0; i < initSize; i++) {
-			int tmp = keyArr[i];
-			db.leapListUpdate(new LeapList[] {db.GetListByIndex(0)}, new long [] {tmp}, new Object [] {String.valueOf(tmp)}, 1);
+		LeapList[] leapArr = new LeapList[numberOfLists];
+		long [] keys = new long [numberOfLists];
+		Object [] vals = new Object [numberOfLists];
+		
+		for (int i = 0; i < initSize; i+=numberOfLists) {	
+			for (int j = 0; j < numberOfLists; j++) {
+				leapArr[j] = db.GetListByIndex(j);
+				keys [j] = keyArr[i + j];
+				vals [j] = String.valueOf(keyArr[i+j]);
+			}
+			db.leapListUpdate(leapArr, keys, vals, numberOfLists);
 		}
 		
 		System.out.println("initiating threads\n");
@@ -79,7 +114,7 @@ public class Test1 {
 			
 			start = i*range + initSize;
 			
-			workers[i] = new MyThread(db, keyArr, opArr, keyRange, done, start, (start + range));
+			workers[i] = new MyThread(db, keyArr, opArr, keyRange, done, start, (start + range), numberOfLists);
 		}
 		
 		for (int i = 0; i < numOfThreads; i++) {

@@ -22,12 +22,17 @@ public class MyThread extends Thread {
 	int updateCounter = 0;
 	int rangeCounter = 0;
 	int removeCounter = 0;
+	int numberOfLists;
+	long [] keys;
+	LeapList [] lists;
+	Object [] vals;
 	
 	PaddedPrimitiveNonVolatile<Boolean> done;
 	int indexStart;
 	int indexStop;
 	
-	public MyThread(LeapListDB db, int [] keyArr, int [] opArr, int keyRange, PaddedPrimitiveNonVolatile<Boolean> done, int indexStart, int indexStop){
+	public MyThread(LeapListDB db, int [] keyArr, int [] opArr, int keyRange, PaddedPrimitiveNonVolatile<Boolean> done,
+			int indexStart, int indexStop, int numberOfLists){
 		this.db = db;
 		this.keyArr = keyArr;
 		this.opArr = opArr;
@@ -35,58 +40,82 @@ public class MyThread extends Thread {
 		this.done = done;
 		this.indexStart = indexStart;
 		this.indexStop = indexStop;
+		this.numberOfLists = numberOfLists;
+		
+		keys = new long [numberOfLists];
+		lists = new LeapList[numberOfLists];
+		vals = new Object [numberOfLists];
+		
+		for (int i = 0; i < numberOfLists; i++) {
+			lists[i] = db.GetListByIndex(i);
+		}
+		
 	}
 	
-	void insert(int key){
-		LeapList list0 = db.GetListByIndex(0);
-		db.leapListUpdate(new LeapList[] {list0}, new long[]{key, }, new Object[]{String.valueOf(key)},1);
-		updateCounter++;
+	void insert(){
+		
+		for (int i = 0; i < numberOfLists; i++) {
+			vals[i] = String.valueOf(keys[i]);
+		}
+		db.leapListUpdate(lists, keys, vals, numberOfLists);
+		updateCounter += numberOfLists;
 	}
 	
-	void remove(int key){
-		LeapList list0 = db.GetListByIndex(0);
-		db.leapListRemove(new LeapList[] {list0}, new long[]{key,  }, 1);
-		removeCounter++;
+	void remove(){
+		db.leapListRemove(lists, keys, numberOfLists);
+		removeCounter += numberOfLists;
 	}
 	
 	Object lookup (int key){
-		LeapList list0 = db.GetListByIndex(0);
-		lookCounter++;
-		return db.lookUp(list0, key);
+		LeapList list0 = db.GetListByIndex(key%numberOfLists);
+		Object tmp = db.lookUp(list0, key);
+		lookCounter += numberOfLists;
+		return tmp;
 	}
 	
-	Object [] rq (int lowKey, int highKey){
-		LeapList list0 = db.GetListByIndex(0);
-		rangeCounter++;
-		return db.RangeQuery(list0, lowKey, highKey);
+	Object [] rq (int key){
+		LeapList list0 = db.GetListByIndex(key%numberOfLists);
+		Object [] tmp = db.RangeQuery(list0, key, key + keyRange);
+		rangeCounter += numberOfLists;
+		return tmp;
 	}
 	
 	public void run(){
 		int i = indexStart;
+		int j = indexStart;
 		while (true) {
 			if (done.value){
 				break;
 			}
-			if (i == indexStop){
+			if (i >= indexStop){
 				System.out.print("array too small!!! increase array size");
 			}
 			
-			switch (opArr[i]){
+			switch (opArr[j]){
 				case 0:
 					lookup(keyArr[i]);
+					i++;
 					break;
 				case 1:
-					int tmp = keyArr[i];
-					rq(tmp, tmp + keyRange);
+					rq(keyArr[i]);
+					i++;
 					break;
 				case 2:
-					insert(keyArr[i]);
+					for (int k = 0; k < numberOfLists; k++) {
+						keys[k] = keyArr[i + k];
+					}
+					insert();
+					i+=numberOfLists;
 					break;
 				case 3:
-					remove(keyArr[i]);
+					for (int k = 0; k < numberOfLists; k++) {
+						keys[k] = keyArr[i + k];
+					}
+					remove();
+					i+=numberOfLists;
 					break;
 				}
-			i++;
+			j++;
 		}
 		
 		totCounter = rangeCounter + lookCounter + updateCounter +removeCounter;
