@@ -548,11 +548,11 @@ public class LeapListDB {
 	        	  if(merge[j])
 	            {
 	            	oldNode[1].live = false;
-	            //	oldNode[1].trie=null;
+	            	oldNode[1].trie=null;
 	            }
 
 	            oldNode[0].live = false;
-	            //oldNode[0].trie=null;
+	            oldNode[0].trie=null;
 	        	
 	            // Update the next pointers of the new node
 	            int i=0;
