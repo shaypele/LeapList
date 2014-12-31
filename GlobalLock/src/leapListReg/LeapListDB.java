@@ -8,14 +8,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class LeapListDB {
-	static final  int MAX_ROW;
+	static  int MAX_ROW;
 	public LeapList[] LeapLists;
 	
 	private final ReentrantLock dbLock = new ReentrantLock();
 	
 	public LeapListDB (int numberOfLists) {
 		MAX_ROW = numberOfLists;
-		leapLists = new LeapLists[MAX_ROW];
+		LeapLists = new LeapList[MAX_ROW];
 		for (int i=0; i < MAX_ROW ; i++)
 		{
 			LeapLists[i] = new LeapList();
