@@ -75,17 +75,12 @@ public class LeapNode {
 	
 	public short findIndex(long key){
 		short retInd = -1;
-		long start = System.nanoTime(); 
 		for (short i=0 ; i < LeapList.NODE_SIZE ; i++){
 			if (data[i].key == key){
 				retInd = i;
 				break;
 			}
 		}
-		long end = System.nanoTime();
-		sum += end - start;
-		counter ++;
-		System.out.println("find time = " + sum/counter);
 		return retInd;
 	}
 	

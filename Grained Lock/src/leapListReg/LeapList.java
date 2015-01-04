@@ -73,7 +73,14 @@ public class LeapList {
 		LeapNode ret = searchPredecessor( key, pa, na);
 		
         if (Trie.USE_TRIE){
-        	index = ret.trie.trieFindVal(key);
+			try
+			{
+				index = ret.trie.trieFindVal(key);
+			}
+			catch(NullPointerException e)
+			{
+				return null;
+			}
         }
         else{
         	index = ret.findIndex(key);

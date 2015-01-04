@@ -37,7 +37,7 @@ public class Trie {
 	public Trie (LeapSet[] data ,int size){
 		
 		if (USE_TRIE) {
-			long start = System.nanoTime();
+
 		short counter = 1;
 		
 		if ( size == 0 ){
@@ -108,10 +108,6 @@ public class Trie {
 			}
 		}
 		
-		long end = System.nanoTime();
-		counter1++;
-		sum1 += (end - start);
-		System.out.println(" Creation time =  " + sum1/counter1);
 		
 		}
 	}
@@ -130,7 +126,7 @@ public class Trie {
 	
 	public short trieFindVal (long key){
 		if (USE_TRIE){
-			long start = System.nanoTime();
+
 		int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 		int index;
 		TrieVal curr = head;
@@ -166,10 +162,6 @@ public class Trie {
 			return -1;
 		long end = System.nanoTime();
 		
-		counter2++;
-		sum2 += (end - start);
-		
-		System.out.println("successful find = " + (sum2/counter2));
 		return (short) (curr.child[index].val - 1);
 		}else{
 			return -1;
