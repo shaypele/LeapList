@@ -7,6 +7,14 @@ public class Trie {
     final int LAST_2_DIGITS_MASK = 0xff;
 	public int nodeNum = 1;
 	
+	public static boolean USE_TRIE = false;
+	
+	public static long counter1 = 0;
+	public static long sum1 = 0;
+	
+	public static long counter2 = 0;
+	public static long sum2 = 0;
+	
 	private TrieMetadata meta;
 	private TrieVal head;
 	
@@ -21,11 +29,15 @@ public class Trie {
 	} 
 	
 	public Trie (long key, short value){
-		
-		createOneNodeTrie( key,  value);
+		if (USE_TRIE){
+			createOneNodeTrie( key,  value);
+		}
 	}
 	
 	public Trie (LeapSet[] data ,int size){
+		
+		if (USE_TRIE) {
+			long start = System.nanoTime();
 		short counter = 1;
 		
 		if ( size == 0 ){
@@ -96,6 +108,12 @@ public class Trie {
 			}
 		}
 		
+		long end = System.nanoTime();
+		counter1++;
+		sum1 += (end - start);
+		System.out.println(" Creation time =  " + sum1/counter1);
+		
+		}
 	}
 	
 
@@ -111,6 +129,8 @@ public class Trie {
 	}
 	
 	public short trieFindVal (long key){
+		if (USE_TRIE){
+			long start = System.nanoTime();
 		int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 		int index;
 		TrieVal curr = head;
@@ -144,8 +164,16 @@ public class Trie {
 		
 		if (curr.child[index].val == 0)
 			return -1;
+		long end = System.nanoTime();
 		
+		counter2++;
+		sum2 += (end - start);
+		
+		System.out.println("successful find = " + (sum2/counter2));
 		return (short) (curr.child[index].val - 1);
+		}else{
+			return -1;
+		}
 	}
 
 	private int recTrieNodesNum(TrieVal curr, byte curLevel){
@@ -165,6 +193,7 @@ public class Trie {
 	}
 	
 	public int trieNodesNum(){
+		if (USE_TRIE) {
 		if (head == null)
 			return 0;
 		
@@ -180,6 +209,9 @@ public class Trie {
 		}
 		sum  = sum + 1;
 		return sum;
+		}else{
+			return -1;
+		}
 	}
 
 }

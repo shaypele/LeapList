@@ -18,7 +18,7 @@ public class Test1 {
     static long endTime;
     static PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<Boolean>(false);
     static PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
-    static final int arrSize = 10000000;
+    static final int arrSize = 100000000;
     static final int initSize = arrSize/1000; 
     static int numberOfLists;
     
@@ -102,6 +102,11 @@ public class Test1 {
 			}
 			db.leapListUpdate(leapArr, keys, vals, numberOfLists);
 		}
+		
+		Trie.counter1 = 0;
+		Trie.counter2 = 0;
+		Trie.sum1 = 0;
+		Trie.sum2 = 0;
 		
 		System.out.println("initiating threads\n");
 		

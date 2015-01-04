@@ -559,10 +559,10 @@ public class LeapListDB {
 	            if (merge[j])
 	            {   
 	                for (; i < oldNode[1].level; i++)
-	                    n.setNext(i, oldNode[1].getNext(i));//.UnMark();
+	                    n.setNext(i, oldNode[1].getNext(i));
 	            }
 	            for (; i < oldNode[0].level; i++)
-	                n.setNext(i, oldNode[0].getNext(i));//.UnMark();
+	                n.setNext(i, oldNode[0].getNext(i));
 	            
 	            
 	            for(i = 0; i < oldNode[0].level; i++)
@@ -596,7 +596,14 @@ public class LeapListDB {
 	        {
 				if (node.trie != null){
 					try{
-			            short indexRes = node.trie.trieFindVal(key);
+			            short indexRes;
+			            if (Trie.USE_TRIE){
+			            	indexRes = node.trie.trieFindVal(key);
+			            }
+			            else{
+			            	indexRes = node.findIndex(key);
+			            }
+			            	
 			            if (indexRes != -1)
 			            {
 			                return node.data[indexRes].value;

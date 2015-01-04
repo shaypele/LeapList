@@ -2,6 +2,8 @@ package leapListReg;
 
 import java.util.ArrayList;
 
+import utils.Trie;
+
 
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
@@ -69,7 +71,14 @@ public class LeapList {
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
 		LeapNode ret = searchPredecessor( key, pa, na);
-		index = ret.trie.trieFindVal(key);
+		
+        if (Trie.USE_TRIE){
+        	index = ret.trie.trieFindVal(key);
+        }
+        else{
+        	index = ret.findIndex(key);
+        }
+		
 		if (index != -1)
 		{
 			retVal =  ret.data[index].value;
