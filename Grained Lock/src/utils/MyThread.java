@@ -58,25 +58,25 @@ public class MyThread extends Thread {
 			vals[i] = String.valueOf(keys[i]);
 		}
 		db.leapListUpdate(lists, keys, vals, numberOfLists);
-		updateCounter += numberOfLists;
+		updateCounter ++;
 	}
 	
 	void remove(){
 		db.leapListRemove(lists, keys, numberOfLists);
-		removeCounter += numberOfLists;
+		removeCounter ++;
 	}
 	
 	Object lookup (int key){
 		LeapList list0 = db.GetListByIndex(key%numberOfLists);
 		Object tmp = db.lookUp(list0, key);
-		lookCounter += numberOfLists;
+		lookCounter ++;
 		return tmp;
 	}
 	
 	Object [] rq (int key){
 		LeapList list0 = db.GetListByIndex(key%numberOfLists);
 		Object [] tmp = db.RangeQuery(list0, key, key + keyRange);
-		rangeCounter += numberOfLists;
+		rangeCounter ++;
 		return tmp;
 	}
 	
