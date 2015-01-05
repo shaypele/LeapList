@@ -39,6 +39,8 @@
 #include <strings.h> /* bzero */
 #endif /* USE_TRIE */
 
+#include "leap_stm.h"
+
 #define ASSERT_GC(X) {if(X==0) exit(999);}
 
 #define EINVAL 22
@@ -489,20 +491,22 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 		prevPred = 0x0;
 
     
+if (pthread_mutex_init(&new_node[j][0]->lock, NULL) != 0)
+{
+	printf("\n mutex init failed\n");
+	exit(9);
+}
 
+if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
+{
+	printf("\n mutex init failed\n");
+	exit(9);
+}
 #ifdef	USE_TRIE
         init_node_trie(new_node[j][0]);
-		if (pthread_mutex_init(&new_node[j][0]->lock, NULL) != 0)
-	    {
-	        printf("\n mutex init failed\n");
-	        exit(9);
-	    }
+		
         init_node_trie(new_node[j][1]);
-		if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
-	    {
-	        printf("\n mutex init failed\n");
-	        exit(9);
-	    }
+		
 #endif	/* USE_TRIE */
 
         n[j] = search_predecessors(db[j], k, preds[j], succs[j]);
@@ -531,13 +535,15 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 						pthread_mutex_unlock(&n[j]->lock);
 					}
 					 
+					 pthread_mutex_destroy(&new_node[j][0]->lock);
+					 pthread_mutex_destroy(&new_node[j][1]->lock); 
 					//Try to lock and is marked, then release lock and try again.
 					#ifdef	USE_TRIE
 			            // deallocate the tries  
 			            trie_destroy(&new_node[j][0]->trie, ptst);
-						pthread_mutex_destroy(&new_node[j][0]->lock);
+						
 			            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-						pthread_mutex_destroy(&new_node[j][1]->lock); 
+						
 					#endif	// USE_TRIE 
 					goto retry_update;
 				}
@@ -584,12 +590,15 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 			}
 			if (!valid){
 				unlockPredForUpdate( preds[j], highestLocked);
+				
+				pthread_mutex_destroy(&new_node[j][0]->lock);
+				pthread_mutex_destroy(&new_node[j][1]->lock); 
 				#ifdef	USE_TRIE
 		            // deallocate the tries  
 		            trie_destroy(&new_node[j][0]->trie, ptst);
-				pthread_mutex_destroy(&new_node[j][0]->lock);
+				
 		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-					pthread_mutex_destroy(&new_node[j][1]->lock); 
+					
 				#endif	// USE_TRIE  
 				goto retry_update;
 			}	
@@ -669,12 +678,15 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 		}
 		else
 		{ 
+			pthread_mutex_destroy(&new_node[j][0]->lock);
+			pthread_mutex_destroy(&new_node[j][1]->lock);
+			
 			#ifdef	USE_TRIE
 		            // deallocate the tries  
-		            pthread_mutex_destroy(&new_node[j][0]->lock);
+		            
 		            trie_destroy(&new_node[j][0]->trie, ptst);
 		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-					pthread_mutex_destroy(&new_node[j][1]->lock); 
+					
 				#endif	// USE_TRIE 
 			goto retry_update;
 		} 
@@ -750,13 +762,16 @@ retry_remove:
     	highestLocked = -1;
 		prevPred = 0x0;
 		valid = 1;
-#ifdef	USE_TRIE
-        init_node_trie(n[j]);
+		
 		if (pthread_mutex_init(&n[j]->lock, NULL) != 0)
 	    {
 	        printf("\n mutex init failed\n");
 	        exit(9);
 	    }
+		
+#ifdef	USE_TRIE
+        init_node_trie(n[j]);
+
 #endif	/* USE_TRIE */
     
 
@@ -772,7 +787,11 @@ retry_last_remove:
         		 goto retry_last_remove;
         	 }
             changed[j] = 0;
-			trie_destroy(&n[j]->trie, ptst);
+			
+			#ifdef	USE_TRIE
+				trie_destroy(&n[j]->trie, ptst);
+			#endif	/* !USE_TRIE */
+			
 			old_node[j][1] = old_node[j][0]->next[0];
 			if (old_node[j][0]->isMarked && isMarkedArr[0]){
 					pthread_mutex_unlock(&old_node[j][0]->lock);
@@ -835,8 +854,10 @@ retry_last_remove:
 							pthread_mutex_unlock(&old_node[j][0]->lock);
 						}
 
-
-						trie_destroy(&n[j]->trie, ptst);
+						#ifdef	USE_TRIE
+							trie_destroy(&n[j]->trie, ptst);
+						#endif	/* !USE_TRIE */
+						
 						pthread_mutex_destroy(&n[j]->lock);
 						 goto retry_remove;
 					 }
@@ -872,9 +893,11 @@ retry_last_remove:
 							{
 								pthread_mutex_unlock(&old_node[j][1]->lock);
 							}
-
-
-							trie_destroy(&n[j]->trie, ptst);
+							
+							#ifdef	USE_TRIE
+								trie_destroy(&n[j]->trie, ptst);
+							#endif	/* !USE_TRIE */
+							
 							pthread_mutex_destroy(&n[j]->lock);
 							 goto retry_remove;
 						 }
@@ -899,8 +922,11 @@ retry_last_remove:
 							pthread_mutex_unlock(&old_node[j][0]->lock);
 						}
 
-
-						trie_destroy(&n[j]->trie, ptst);
+						#ifdef	USE_TRIE
+							trie_destroy(&n[j]->trie, ptst);
+						#endif	/* !USE_TRIE */
+						
+						
 						pthread_mutex_destroy(&n[j]->lock);
 						 goto retry_remove;
 					 }
@@ -963,7 +989,11 @@ retry_last_remove:
 			if (!valid){
 				//preds_node1 won't be used here.
 				unlockPredForRemove(preds[j] ,0x0 ,highestLocked, old_node[j][0]->level );
-				trie_destroy(&n[j]->trie, ptst);
+				
+				#ifdef	USE_TRIE
+					trie_destroy(&n[j]->trie, ptst);
+				#endif	/* !USE_TRIE */
+				
 				pthread_mutex_destroy(&n[j]->lock);
 				goto retry_remove;
 			}	
@@ -995,8 +1025,11 @@ retry_last_remove:
 				}
 				if (!valid){
 					unlockPredForRemove(preds[j] ,preds_node1[j] ,highestLocked, old_node[j][0]->level );
-
-					trie_destroy(&n[j]->trie, ptst);
+					
+					#ifdef	USE_TRIE
+						trie_destroy(&n[j]->trie, ptst);
+					#endif	/* !USE_TRIE */
+					
 					pthread_mutex_destroy(&n[j]->lock);
 					goto retry_remove;
 				}	
@@ -1068,7 +1101,11 @@ retry_last_remove:
     	 {
 		fail_merge:
      		pthread_mutex_destroy(&n[j]->lock);
-              trie_destroy(&n[j]->trie, ptst);
+			
+			#ifdef	USE_TRIE
+				trie_destroy(&n[j]->trie, ptst);
+			#endif	/* !USE_TRIE */
+		
 		goto retry_remove;
 
     	 }    

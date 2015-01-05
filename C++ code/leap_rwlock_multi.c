@@ -676,7 +676,7 @@ setval_t set_lookup(set_t *l, setkey_t k)
     k=k+2; // Avoid sentinel
 
     vwLock my_order;
-    OrderedRWLock_AcquireRead(&my_order);
+    OrderedRWLock_AcquireWrite(&my_order);
 
     ptst = critical_enter();
 
@@ -685,7 +685,7 @@ setval_t set_lookup(set_t *l, setkey_t k)
     v = find(n,k);
 
     critical_exit(ptst);
-    OrderedRWLock_ReleaseRead(&my_order);
+    OrderedRWLock_ReleaseWrite(&my_order);
 
     return v;
 }
@@ -700,7 +700,7 @@ setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
     high = high+2;
 
     vwLock my_order;
-    OrderedRWLock_AcquireRead(&my_order);
+    OrderedRWLock_AcquireWrite(&my_order);
 
     ptst = critical_enter();
 
@@ -713,7 +713,7 @@ setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
 
     critical_exit(ptst);
 
-    OrderedRWLock_ReleaseRead(&my_order);
+    OrderedRWLock_ReleaseWrite(&my_order);
 
     return 0;
 

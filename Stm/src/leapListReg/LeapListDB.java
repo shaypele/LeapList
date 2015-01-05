@@ -9,7 +9,7 @@ import utils.Trie;
 
 public class LeapListDB {
 	
-	public static final  int MAX_ROW ;
+	public static int MAX_ROW  = 0;
 	public LeapList[] LeapLists;
 
 	

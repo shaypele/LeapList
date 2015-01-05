@@ -8,7 +8,9 @@ import org.deuce.Atomic;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 60;
+	static final int NODE_SIZE = 60 ;
+
+	ArrayList<Integer> arrIDs = new ArrayList<>();
 	
 	LeapNode head;
 	LeapNode tail;
@@ -28,25 +30,26 @@ public class LeapList {
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
-		boolean   xRef = false; 
+		boolean   xRef1 = false,xRef2 = false; 
 		boolean restartLook = false;
 		do{
 		x = head;
-		xRef = false; 
+		xRef1 = false; 
+		xRef2 = false;
 		restartLook = false;
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
 				x_next = x.getNext(i);
-				
+				xRef2 = x.Marks[i];
 				if (x_next.high >= key)
 					break;
 				else
 				{
+					xRef1 = x.Marks[i];
 					x = x_next;
-					xRef = x.Marks[i];
 				}
 			}
-		  if (xRef ||  x.Marks[i])
+		  if (xRef1 ||  xRef2)
 			  restartLook = true;
 			if(restartLook == true){
 				break;
