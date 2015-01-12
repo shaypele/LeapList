@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <string.h>
 #include <assert.h>
@@ -50,8 +51,11 @@
 #define ASSERT_GC(X) {if(X==0) exit(999);}
 #define make_marked_ptr(_p)   ((void *)((unsigned long)(_p) | 1))
 #define mark_abo(_p) if(is_marked_ref(_p)) _xabort (0xff);
+#define mark_abo_SW(_p) if(is_marked_ref(_p)) __transaction_cancel;
 #define UNMARK(X) X=get_unmarked_ref(X)
 #define MARK(X) X=make_marked_ptr(X)
+
+#define MAX_CAPACITY_ABORTS 10 //maximum number of capacity aborts allowed for a hardware transaction
 
 static int gc_id;
 typedef void set_t;
@@ -71,6 +75,15 @@ typedef struct node_t {
 #endif	/* USE_TRIE */
     volatile struct node_t volatile * next[MAX_LEVEL];  // Pointers.
 } node_t;
+
+
+
+/////////////// Transcation software fallback functions ///////////////////////
+
+setval_t set_rq_SW(set_t *l, setkey_t low, setkey_t high,ptst_t *ptst);
+setval_t set_remove_SW(set_t *l, setkey_t k, int j,ptst_t *ptst);
+setval_t set_update_SW(set_t *l, setkey_t k, setval_t v, int j,ptst_t *ptst);
+////////////////////////////////////////////////////////////////////////////// 
 
 static void print_node2(volatile node_t *n, char *prefix)
 {
@@ -155,7 +168,6 @@ static volatile node_t *search_predecessors(node_t *l, setkey_t k, volatile node
     volatile node_t  *x,  *x_next;
     int i;
     ptst_t *ptst;
-    unsigned long cnttt = 0;
 restart_look:
     {
         x = l;
@@ -430,7 +442,10 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
     int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW],status = 89;
     unsigned long max_height[MAX_ROW];
     node_t *new_node[MAX_ROW][2];
-    unsigned long cnttt = 0;
+	// counter which countes how many times the hardware transaction failed due to capcity abort. 
+	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
+	int tranCapFailCounter = 0;
+	
     k=k+2; // Avoid sentinel
 
     ptst = critical_enter();
@@ -443,6 +458,8 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
         ASSERT_GC(new_node[j][1]);
         new_node[j][0]->live = 0;
         new_node[j][1]->live = 0;
+
+		tranCapFailCounter = 0;
     
 retry_update:
 
@@ -537,9 +554,7 @@ retry_update:
                 for(i = 0; i < max_height[j]; i++)
                 {
 			       if(is_marked_ref(preds[j][i]->next[i]))
-				   {
-						printf("abort 8 ");
-					
+				   {					
 			            _xabort (5);
 					
 						goto fail_path;
@@ -556,14 +571,30 @@ retry_update:
     }
     else// else, transaction failed.
     {
-	fail_path:
-	#ifdef	USE_TRIE
-	            /* deallocate the tries */
-	            trie_destroy(&new_node[j][0]->trie, ptst);
-	            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-	#endif	/* USE_TRIE */
-        
-    goto retry_update;
+		if  ( status == _XABORT_CAPACITY )
+		{
+			// increment capacity abort counter
+			tranCapFailCounter	++; 
+		}
+			
+		fail_path:
+		#ifdef	USE_TRIE
+		            /* deallocate the tries */
+		            trie_destroy(&new_node[j][0]->trie, ptst);
+		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+		#endif	/* USE_TRIE */
+
+		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
+		{
+			// fallback to software transcation.
+			set_update_SW(l, k, v, j,ptst);
+			// continue to next value.
+			goto deallocate_update;
+		}
+		else
+		{
+		   goto retry_update;
+		}
     }
 
 
@@ -618,19 +649,21 @@ retry_update:
                 new_node[j][1]->live = 1;
         
 
+	}
 
-        if(changed[j])
-        {
-            deallocate_node(n[j], ptst);
-            if (!split[j]) deallocate_node(new_node[j][1], ptst);
-        }
-        else
-        {
-            deallocate_node(new_node[j][0], ptst);
-            deallocate_node(new_node[j][1], ptst);
-        }    
-
+	deallocate_update:
+    if(changed[j])
+    {
+        deallocate_node(n[j], ptst);
+        if (!split[j]) deallocate_node(new_node[j][1], ptst);
     }
+    else
+    {
+        deallocate_node(new_node[j][0], ptst);
+        deallocate_node(new_node[j][1], ptst);
+    }    
+
+    
     }
     critical_exit(ptst);
     return 0;
@@ -643,13 +676,19 @@ setval_t set_remove(set_t *l, setkey_t k)
     ptst_t *ptst;
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
     int i, j, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
-    int indicator2 = 0;
+    int indicator2 = 0,status;
     node_t *n[MAX_ROW];
+	// counter which countes how many times the hardware transaction failed due to capcity abort. 
+	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
+	int tranCapFailCounter = 0;
+	
     k=k+2; // Avoid sentinel
 
     ptst = critical_enter();
     for(j=0; j<MAX_ROW; j++)
     {
+		tranCapFailCounter = 0;
+		
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
     
@@ -724,8 +763,8 @@ retry_last_remove:
         changed[j] = removeAct(old_node[j], n[j], k, merge[j], ptst);
 
     
-
-    if (_xbegin()  == _XBEGIN_STARTED )
+	status = _xbegin();
+    if ( status  == _XBEGIN_STARTED )
     {
             if(changed[j])
             {
@@ -825,12 +864,31 @@ retry_last_remove:
     }
     else
     {
+
+		if  ( status == _XABORT_CAPACITY )
+		{
+			// increment capacity abort counter
+			tranCapFailCounter	++; 
+		}
+			
+		#ifdef	USE_TRIE
+	            trie_destroy(&n[j]->trie, ptst);
+		#endif	/* USE_TRIE */
+			
+		
+		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
+		{
+			// fallback to software transcation.
+			set_remove_SW(l, k, j,ptst);
+			// continue to next value.
+			goto deallocate_remove;
+		}
+        else
+        {
+			goto retry_remove;
+        }
         
-#ifdef	USE_TRIE
-            trie_destroy(&n[j]->trie, ptst);
-#endif	/* USE_TRIE */
-        
-        goto retry_remove;
+
     }
 
     
@@ -854,13 +912,18 @@ retry_last_remove:
 
             n[j]->live = 1;
 
-            if(merge[j])
+            
+        }
+
+		deallocate_remove:
+		if(changed[j])
+        {
+			if(merge[j])
                 deallocate_node(old_node[j][1], ptst);
 
             deallocate_node(old_node[j][0], ptst);
-        }
-
-        else
+		}
+		else
         {
             deallocate_node(n[j], ptst);
         }    
@@ -897,8 +960,12 @@ retry_lookup:
 setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
 {
     volatile node_t *n;
-    int i, indicator = 0;
+    int i, indicator = 0,status;
     ptst_t *ptst;
+
+	// counter which countes how many times the hardware transaction failed due to capcity abort. 
+	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
+	int tranCapFailCounter = 0;
 
     low = low+2; // Avoid sentinel
     high = high+2;
@@ -908,7 +975,8 @@ setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
 retry_rq:
     n = search_predecessors(l, low, 0, 0);
 
-    if (_xbegin()  == _XBEGIN_STARTED )
+	status = _xbegin();
+    if (  status == _XBEGIN_STARTED )
     {
         while(high>n->high)
         {
@@ -916,15 +984,29 @@ retry_rq:
                 _xabort (5);
             n = get_unmarked_ref(n->next[0]);
         }
-        //indicator = 1;
+
 		if (_xtest())
 		{
 			_xend();
 		}
     }
-	else//    if(!indicator)
+	else
 	{
-        goto retry_rq;
+
+		if  ( status == _XABORT_CAPACITY )
+		{
+			// increment capacity abort counter
+			tranCapFailCounter	++; 
+		}
+		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
+		{
+			// fallback to software transcation.
+			set_rq_SW(l, low, high,ptst);
+		}
+		else
+		{
+        	goto retry_rq;
+		}
 	}
 
     critical_exit(ptst);
@@ -939,5 +1021,439 @@ void _init_set_subsystem(void)
 #ifdef	USE_TRIE
     _init_trie_subsystem();
 #endif	/* USE_TRIE */
+}
+
+
+
+
+
+/////////////// Transcation software fallback functions ///////////////////////
+
+
+
+
+// Gets lists(l) , key, value and j - list index to run update on
+setval_t set_update_SW(set_t *l, setkey_t k, setval_t v, int j,ptst_t   *ptst)
+{
+    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_LEVEL];
+    int i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
+    unsigned long max_height[MAX_ROW];
+    node_t *new_node[MAX_ROW][2];
+    k=k+2; // Avoid sentinel
+
+   
+    new_node[j][0] = (node_t *) gc_alloc(ptst, gc_id);
+    ASSERT_GC(new_node[j][0]);
+    new_node[j][1] = (node_t *) gc_alloc(ptst, gc_id);
+    ASSERT_GC(new_node[j][1]);
+    new_node[j][0]->live = 0;
+    new_node[j][1]->live = 0;
+   
+retry_update_SW:
+
+
+#ifdef	USE_TRIE
+        init_node_trie(new_node[j][0]);
+        init_node_trie(new_node[j][1]);
+#endif	/* USE_TRIE */
+
+        n[j] = search_predecessors(db[j], k, preds[j], succs[j]);
+        if(n[j]->count == NODE_SIZE)
+        {
+            split[j] = 1; 
+            new_node[j][1]->level = n[j]->level;
+            new_node[j][0]->level = get_level(ptst);
+            max_height[j] = (new_node[j][0]->level > new_node[j][1]->level) ? new_node[j][0]->level : new_node[j][1]->level;
+        }
+        else
+        {
+            split[j] = 0;
+            new_node[j][0]->level = n[j]->level; 
+            max_height[j] = new_node[j][0]->level;
+        }
+
+        changed[j] = insert(new_node[j], n[j], k, v, 1, split[j], ptst);
+
+	
+
+    __transaction_atomic 
+    { 
+        
+            if (n[j]->live == 0)
+                __transaction_cancel;
+
+            for(i = 0; i < n[j]->level; i++)
+            {   
+                if(preds[j][i]->next[i] != n[j]) __transaction_cancel;
+                if(n[j]->next[i]) if(!n[j]->next[i]->live) __transaction_cancel;
+            }
+
+            for(i = 0; i < max_height[j]; i++)
+            {   
+                if(preds[j][i]->next[i] != succs[j][i]) __transaction_cancel;
+                if(!(preds[j][i]->live)) __transaction_cancel;
+                if(!(succs[j][i]->live)) __transaction_cancel;
+            }
+
+
+
+            if(changed[j]) // lock
+            {
+                for(i = 0; i < n[j]->level; i++)
+                {
+                    if (n[j]->next[i] != NULL)
+                    {
+                        mark_abo_SW(n[j]->next[i]);
+                        MARK(n[j]->next[i]);
+                    }
+                }                        
+
+                for(i = 0; i < max_height[j]; i++)
+                {
+                    mark_abo_SW(preds[j][i]->next[i]);
+                    MARK(preds[j][i]->next[i]);
+                }
+
+                n[j]->live = 0;
+            }
+
+
+        
+        indicator = 1;
+
+    }
+    if(!indicator)
+    {
+
+
+#ifdef	USE_TRIE
+            /* deallocate the tries */
+            trie_destroy(&new_node[j][0]->trie, ptst);
+            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+#endif	/* USE_TRIE */
+
+        goto retry_update_SW;
+    }
+
+
+    if(changed[j]) // unlock
+    {
+        // Make the correct linking of the new nodes
+        if (split[j])
+        {   
+            if (new_node[j][1]->level > new_node[j][0]->level)
+            {   
+                for (i = 0; i < new_node[j][0]->level; i++)
+                {
+                    new_node[j][0]->next[i] = new_node[j][1];
+                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
+                }
+                for (; i < new_node[j][1]->level; i++)
+                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
+            }
+            else
+            {   
+                for (i = 0; i < new_node[j][1]->level; i++)
+                {
+                    new_node[j][0]->next[i] = new_node[j][1];
+                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
+                }
+                for (; i < new_node[j][0]->level; i++)
+                    new_node[j][0]->next[i] = succs[j][i];
+            }
+        }
+        else
+        {
+            for (i = 0; i < new_node[j][0]->level; i++)
+            {
+                new_node[j][0]->next[i] = get_unmarked_ref(n[j]->next[i]);
+            }
+        }
+
+        // Unlock the predecessors to the new nodes
+        for(i=0; i < new_node[j][0]->level; i++)
+        {
+            preds[j][i]->next[i] = new_node[j][0];
+        }
+        if (split[j] && (new_node[j][1]->level > new_node[j][0]->level))
+            for(; i < new_node[j][1]->level; i++)
+            {
+                preds[j][i]->next[i] = new_node[j][1];
+            }
+
+        new_node[j][0]->live = 1;
+        if (split[j])
+            new_node[j][1]->live = 1;
+    }
+
+
+    if(changed[j])
+    {
+        deallocate_node(n[j], ptst);
+        if (!split[j]) deallocate_node(new_node[j][1], ptst);
+    }
+    else
+    {
+        deallocate_node(new_node[j][0], ptst);
+        deallocate_node(new_node[j][1], ptst);
+    }    
+
+    return 0;
+}
+
+
+
+
+// Gets lists(l) , key and j - list index to run update on
+setval_t set_remove_SW(set_t *l, setkey_t k, int j,ptst_t *ptst)
+{
+    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
+    int i, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
+    int indicator2 = 0;
+    node_t *n[MAX_ROW];
+    k=k+2; // Avoid sentinel
+
+    n[j] = (node_t *) gc_alloc(ptst, gc_id);
+    ASSERT_GC(n[j]);
+retry_remove_SW:
+
+#ifdef	USE_TRIE
+        init_node_trie(n[j]);
+#endif	/* USE_TRIE */
+
+retry_last_remove_SW:
+        merge[j] = 0;
+        old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
+
+        /* If the key is not present, just return */
+        if (find(old_node[j][0], k) == 0)
+        {
+            changed[j] = 0;
+		    return -1;
+        }
+
+        do
+        {
+            old_node[j][1] = old_node[j][0]->next[0];
+            if (!old_node[j][0]->live)
+                goto retry_last_remove_SW;
+        //} while ((old_node[j][0]->live) && (is_marked_ref(old_node[j][1])));
+        } while (is_marked_ref(old_node[j][1]));
+
+        if (!old_node[j][0]->live)
+            goto retry_last_remove_SW;
+
+        total[j] = old_node[j][0]->count;
+
+        if(old_node[j][1])
+        {
+            total[j] = total[j] + old_node[j][1]->count;
+
+            if (!old_node[j][0]->live || !old_node[j][1]->live)
+                goto retry_last_remove_SW;
+
+            if(total[j] <= NODE_SIZE)
+            {
+                merge[j] = 1; 
+            }
+        }
+        n[j]->level = old_node[j][0]->level;    
+        n[j]->low   = old_node[j][0]->low;
+        n[j]->count = old_node[j][0]->count;
+        n[j]->live = 0;
+
+        if(merge[j])
+        {
+            if (old_node[j][1]->level > n[j]->level)
+            {
+                n[j]->level = old_node[j][1]->level;
+            }
+            n[j]->count += old_node[j][1]->count;
+            n[j]->high = old_node[j][1]->high;
+        }
+        else
+        {
+            n[j]->high = old_node[j][0]->high;
+        }
+
+        if (!old_node[j][0]->live)
+            goto retry_last_remove_SW;
+
+        if (merge[j] && !old_node[j][1]->live)
+            goto retry_last_remove_SW;
+
+        changed[j] = removeAct(old_node[j], n[j], k, merge[j], ptst);
+
+    
+
+    __transaction_atomic 
+    {
+        if(changed[j])
+        {
+            if (!old_node[j][0]->live)
+                __transaction_cancel;
+
+            if (merge[j] && !old_node[j][1]->live)
+                __transaction_cancel;
+
+            for(i = 0; i < old_node[j][0]->level;i++)
+            {
+                if (preds[j][i]->next[i] != old_node[j][0])  __transaction_cancel;
+                if (!(preds[j][i]->live))  __transaction_cancel;
+                if (old_node[j][0]->next[i]) if (!old_node[j][0]->next[i]->live) __transaction_cancel;
+            }
+
+
+            if (merge[j])
+            {   
+                // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
+                if (old_node[j][0]->next[0] != old_node[j][1])
+                    __transaction_cancel;
+
+                if (old_node[j][1]->level > old_node[j][0]->level)
+                {   
+                    // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
+                    for (i = 0; i < old_node[j][0]->level; i++)
+                    {
+                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
+                    }
+                    // For the higher part, we need to check also the preds of that part
+                    for (; i < old_node[j][1]->level; i++)
+                    {
+                        if (preds[j][i]->next[i] != old_node[j][1])  __transaction_cancel;
+                        if (!(preds[j][i]->live))  __transaction_cancel;
+                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live) __transaction_cancel;
+                    }
+
+                }
+                else // old_node[0] is higher than old_node[1], just check the next pointers of old_node[1]
+                {
+                    for (i = 0; i < old_node[j][1]->level; i++)
+                    {
+                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
+                    }
+                }
+            }
+
+            // Lock the pointers to the next nodes
+            if(merge[j])
+            {
+                for(i = 0; i < old_node[j][1]->level; i++)
+                {
+                    if (old_node[j][1]->next[i] != NULL)
+                    {   
+                        mark_abo_SW(old_node[j][1]->next[i]);
+                        MARK(old_node[j][1]->next[i]);
+                    }
+                }
+                for(i = 0; i < old_node[j][0]->level; i++)
+                {
+                    if (old_node[j][0]->next[i] != NULL)
+                    {   
+                        mark_abo_SW(old_node[j][0]->next[i]);
+                        MARK(old_node[j][0]->next[i]);
+                    }
+                }
+            }
+            else
+            {   
+                for(i = 0; i < old_node[j][0]->level; i++)
+                {
+                    if (old_node[j][0]->next[i] != NULL)
+                    {   
+                        mark_abo_SW(old_node[j][0]->next[i]);
+                        MARK(old_node[j][0]->next[i]);
+                    }
+                }
+            }
+
+            // Lock the pointers to the current node
+            for(i = 0; i < n[j]->level; i++)
+            {
+                mark_abo_SW(preds[j][i]->next[i]);
+                MARK(preds[j][i]->next[i]);
+            }
+
+            old_node[j][0]->live = 0;      
+            if (merge[j])
+                old_node[j][1]->live = 0;      
+        }
+        indicator = 1;
+    }
+
+    if(!indicator)
+    {
+#ifdef	USE_TRIE
+            trie_destroy(&n[j]->trie, ptst);
+#endif	/* USE_TRIE */
+        goto retry_remove_SW;
+    }
+
+    if(changed[j])
+    {
+
+        // Update the next pointers of the new node
+        i = 0;
+        if (merge[j])
+        {   
+            for (; i < old_node[j][1]->level; i++)
+                n[j]->next[i] = get_unmarked_ref(old_node[j][1]->next[i]);
+        }
+        for (; i < old_node[j][0]->level; i++)
+            n[j]->next[i] = get_unmarked_ref(old_node[j][0]->next[i]);
+
+        for(i = 0; i < n[j]->level; i++)
+        {   
+            preds[j][i]->next[i] = n[j];
+        }
+
+        n[j]->live = 1;
+
+        if(merge[j])
+            deallocate_node(old_node[j][1], ptst);
+
+        deallocate_node(old_node[j][0], ptst);
+    }
+
+    else
+    {
+        deallocate_node(n[j], ptst);
+    }    
+
+
+    return 0;
+}
+
+
+setval_t set_rq_SW(set_t *l, setkey_t low, setkey_t high,ptst_t *ptst)
+{
+    volatile node_t *n;
+    int i, indicator = 0;
+
+    low = low+2; // Avoid sentinel
+    high = high+2;
+
+
+retry_rq_SW:
+    n = search_predecessors(l, low, 0, 0);
+
+    __transaction_atomic 
+    {
+        while(high>n->high)
+        {
+            if (!n->live)
+                __transaction_cancel;
+            n = get_unmarked_ref(n->next[0]);
+        }
+        indicator = 1;
+    }
+    if(!indicator)
+        goto retry_rq_SW;
+
+
+
+    return 0;
+
+
 }
 
