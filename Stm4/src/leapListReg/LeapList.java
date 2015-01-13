@@ -1,6 +1,7 @@
 package leapListReg;
 
 import java.util.ArrayList;
+
 import org.deuce.Atomic;
 
 
@@ -8,9 +9,7 @@ import org.deuce.Atomic;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 60 ;
-
-	ArrayList<Integer> arrIDs = new ArrayList<>();
+	static final int NODE_SIZE = 300;
 	
 	LeapNode head;
 	LeapNode tail;
@@ -30,36 +29,41 @@ public class LeapList {
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
 		LeapNode x, x_next = null;
-		boolean   xRef1 = false,xRef2 = false; 
+		boolean   xRef = false; 
 		boolean restartLook = false;
 		do{
-		x = head;
-		xRef1 = false; 
-		xRef2 = false;
-		restartLook = false;
-		for (int i = MAX_LEVEL -1; i >= 0; i--) {
-			while (true){
-				x_next = x.getNext(i);
-				xRef2 = x.Marks[i];
-				if (x_next.high >= key)
-					break;
-				else
+			x = head;
+			xRef = false; 
+			restartLook = false;
+			for (int i = MAX_LEVEL -1; i >= 0; i--)
+			{
+				while (true)
 				{
-					xRef1 = x.Marks[i];
-					x = x_next;
+					x_next = x.getNext(i);
+					if (x_next.high >= key)
+						break;
+					else
+					{
+						x = x_next;
+						xRef = x.Marks[i];
+					}
+				}
+			  if (xRef ||  x.Marks[i])
+			  {
+				  restartLook = true;
+			  }
+			  if(restartLook == true)
+					break;
+			  
+				if (pa != null)
+				{
+					pa[i] = x;
+				}
+				if (na != null)
+				{
+					na[i] = x_next;
 				}
 			}
-		  if (xRef1 ||  xRef2)
-			  restartLook = true;
-			if(restartLook == true){
-				break;
-			}
-			if (pa != null)
-				pa[i] = x;
-			if (na != null)
-				na[i] = x_next;
-			
-		}
 		}while(restartLook);
 		return x_next;
 	}
@@ -110,10 +114,12 @@ public class LeapList {
 	    nodesToIterate.add(n);	
 	    while (high>n.high)
 	    {
-	    	if (!n.live){
+	    	if (!n.live)
+	    	{
     			 break;
-    		 }
-	    	if (n.getNext(0) != null){
+    		}
+	    	if (n.getNext(0) != null)
+	    	{
  	    		n = n.getNext(0);
  	    		nodesToIterate.add(n);
  	    	}
@@ -121,7 +127,7 @@ public class LeapList {
 	    
 	}
 
-	private LeapNode addValuesToSet(long low, long high, LeapNode n,
+	LeapNode addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
 		for (int i = 0; i < n.count ; i++)
 		{

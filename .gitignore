@@ -42,3 +42,116 @@ Network Trash Folder
 Temporary Items
 .apdisk
 /bin/
+
+Benchmarks/~$benchmarkPlan.xlsx
+compare/alpha_defns.h
+compare/fa
+compare/fa.c
+compare/gc.c
+compare/gc.h
+compare/gc.o
+compare/ia64_defns.h
+compare/intel_defns.h
+compare/intel_defns.h.old
+compare/leap_cop_multi
+compare/leap_cop_multi.c
+compare/leap_cop_multi_htm.c
+compare/leap_FG_lock_multi
+compare/leap_FG_lock_multi.c
+compare/leap_FG_lock_multi.c.no-init
+compare/leap_FG_lock_multi.c.old
+compare/leap_FG_lock_multi.c.Working-16.12
+compare/leap_FG_lock_multi.o
+compare/leap_rtm_multi
+compare/leap_rtm_multi.c
+compare/leap_rtm_multi.c - with failure threshold
+compare/leap_rtm_multi.c2
+compare/leap_rtm_multi.o
+compare/leap_rwlock_multi
+compare/leap_rwlock_multi.c
+compare/leap_rwlock_multi.o
+compare/leap_stm.h
+compare/leap_stm_multi
+compare/leap_stm_multi.c
+compare/leap_tm_lock_multi
+compare/leap_tm_lock_multi.c
+compare/leap_tm_lock_multi.o
+compare/leap_tm_lock_multi_adi.c
+compare/LeapListVS.sdf
+compare/LeapListVS.sln
+compare/LeapListVS.v12.suo
+compare/LeapListVS.vcxproj
+compare/LeapListVS.vcxproj.filters
+compare/log1
+compare/Makefile
+compare/Makefile.changed
+compare/Makefile.rw
+compare/mips_defns.h
+compare/myfil
+compare/myfile
+compare/portable_defns.h
+compare/ppc_defns.h
+compare/ptst.c
+compare/ptst.h
+compare/ptst.o
+compare/random.h
+compare/replay
+compare/replay.c
+compare/replay.o
+compare/run20121025.sh
+compare/rwlock.h
+compare/rwlock.h.old
+compare/set.h
+compare/set_harness.c
+compare/set_harness.c2
+compare/set_harness.o
+compare/sparc_defns.h
+compare/stm.h
+compare/trie.c
+compare/trie.h
+compare/trie.o
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/.classpath
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/.gitignore
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/.project
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/build.xml
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/leapListReg/LeapList.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/leapListReg/LeapListDB.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/leapListReg/LeapNode.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/LeapSet.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/MyThread.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/PaddedPrimitive.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/runme
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/Test1.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/Trie.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/TrieMetadata.java
+Grained Lock - Copy - with merge factor for benchmark from 12.01.15/src/utils/TrieVal.java
+Grained Lock/src/utils/runme
+leap_rtm_multi.c - dav
+leap_rtm_multi.c - yos
+set_harness.c
+set_harness.c2
+set_harness.c3
+stm.jar
+Stm/res_back
+Stm/res_back_300
+Stm/res_norm_300
+Stm/res_normal
+Stm/res_rand
+Stm/res_rand_300
+Stm/runme
+Stm/runme2.txt
+Stm/runNor
+Stm/temp/deuceAgent-1.3.0.jar
+Stm/temp/runNorm
+Stm/temp/runRand
+Stm4/res_back_300
+Stm4/res_back_300_2
+Stm4/res_back_60
+Stm4/res_norm_300
+Stm4/res_norm_300_2
+Stm4/res_normal_60
+Stm4/res_rand_300
+Stm4/res_rand_300_2
+Stm4/temp/deuceAgent-1.3.0.jar
+Stm4/temp/runNorm
+Stm4/temp/runRand
