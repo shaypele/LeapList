@@ -47,11 +47,11 @@
 //#define DO_WRITE_LOG
 
 #ifdef DO_WRITE_LOG
-#define MAX_ITERATIONS 100000000
-#define MAX_WALL_TIME 5 /* seconds */
+#define MAX_ITERATIONS 1000000000
+#define MAX_WALL_TIME 10 /* seconds */
 #else
-#define MAX_ITERATIONS 100000000
-#define MAX_WALL_TIME 5 /* seconds */
+#define MAX_ITERATIONS 1000000000
+#define MAX_WALL_TIME 10 /* seconds */
 #endif
 
 /*
@@ -189,7 +189,7 @@ static void alarm_handler( int arg)
     shared.alarm_time = 1;
 }
 
-#define INIT_EMPTY_SET
+//#define INIT_EMPTY_SET
 
 static void set_data_initialize()
 {
@@ -290,7 +290,7 @@ static void *thread_start(void *arg)
 #ifdef DO_WRITE_LOG
         log->start = my_int;
 #endif
-       /* if ( ((r>>4)%100) <( rq_prop))
+        if ( ((r>>4)%100) <( rq_prop))
         {
             ov = v = set_rq(shared.set, k, (k+rq_size));
         }
@@ -298,20 +298,15 @@ static void *thread_start(void *arg)
         {
             ov = v = set_lookup(shared.set, k);
         }
-        else if ( ((r>>12)&1) ){
-*/
-		//if (k % 3 != 0){
-		 if ( ((r>>12)&1) ){
-            v = (void *)((r&~7)|0x8);
-		//fprintf (stdout, "Before update\n");
-            ov = set_update(shared.set, k, v, 1);
+		else if (((r >> 12) & 1)){
+				v = (void *)((r&~7) | 0x8);
+				ov = set_update(shared.set, k, v, 1);
 		}
-        else
-        {
-            v = NULL;
-			//printf("enter remove\n");
-            ov = set_remove(shared.set, k);
-        }
+		else
+		{
+			v = NULL;
+			ov = set_remove(shared.set, k);
+		}
 
 #ifdef DO_WRITE_LOG
         get_interval(my_int);
@@ -463,7 +458,7 @@ int main (int argc, char **argv)
     log_int ("rq_size", (float)rq_size); /* Range of keys to traverse. */
 
     look_prop += rq_prop;
-    log_float ("frac_updates", (float)(100-rq_prop)/100);/* This is divided to insert / delete */
+    log_float ("frac_updates", (float)(100-look_prop)/100);/* This is divided to insert / delete */
 
     keys_range = atoi(argv[5]);
 

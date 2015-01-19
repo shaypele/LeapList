@@ -76,8 +76,8 @@ COMMON_DEPS += Makefile $(wildcard *.h)
 #TARGETS    += trie_test skip_stm_fraser skip_stm_herlihy skip_stm_lock leap_stm leap_no_stm skip_stm_gcc leap_light leap_tm_lock_multi leap_rwlock_multi leap_tm_lock leap_stm_multi
 #GC_HARNESS_TARGETS += leap_cas
 
-#TARGETS    := leap_rtm_multi leap_tm_lock_multi leap_FG_lock_multi
-TARGETS    :=  leap_FG_lock_multi leap_rtm_multi leap_rwlock_multi
+#TARGETS    := leap_rtm_multi leap_tm_lock_multi leap_FG_lock_multi 
+TARGETS    :=  leap_FG_lock_multi leap_rtm_multi leap_rwlock_multi leap_tm_lock_multi
 # leap_rwlock_multi leap_stm_multi leap_cop_multi test_gcc_stm test_gcc_stm_perf 
 
 all: $(TARGETS) replay

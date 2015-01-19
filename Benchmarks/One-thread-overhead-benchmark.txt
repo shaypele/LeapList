@@ -1,0 +1,302 @@
+3 runs for 10 sec for each implementation with various number of threads : 1 2 4 8 and for node size 300
+
+****************************** c *********************************************:
+for 60% lookup 30% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+1072646.500000
+1061408.500000
+1069538.375000
+
+
+
+FG_lock results:
+
+1 thread
+1112127.125000
+1298582.375000
+1312610.125000
+
+
+stm_lock results:
+
+1 thread
+953825.500000
+950440.562500
+947258.187500
+
+
+
+rtm_lock results:
+
+1 thread
+941513.625000
+947343.875000
+941235.562500
+
+
+
+*****************************8
+
+for 90% lookup 0% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+1399840.375000
+1386134.375000
+1417025.000000
+
+
+
+FG_lock results:
+
+1 thread
+1396947.125000
+1692942.250000
+1382424.625000
+
+
+
+stm_lock results:
+
+1 thread
+1281192.625000
+1263875.750000
+1551835.750000
+
+
+rtm_lock results:
+
+1 thread
+1436322.750000
+1378343.875000
+1397118.375000
+
+
+
+*****************************8
+for 0% lookup 90% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+1237610.375000
+1226643.625000
+1220313.125000
+
+
+
+FG_lock results:
+
+1 thread
+1257082.750000
+1253161.375000
+1248181.750000
+
+
+stm_lock results:
+
+1 thread
+1053586.875000
+1061374.500000
+1067793.500000
+
+
+
+rtm_lock results:
+
+1 thread
+1192457.500000
+1199508.625000
+1188920.875000
+
+
+*****************************8
+for 0% lookup 0% Range Query 50% insert 50% remove
+rw_lock results:
+
+1 thread
+135417.906250
+134602.437500
+131270.406250
+
+FG_lock results:
+
+1 thread
+174923.218750
+174227.906250
+173691.015625
+
+
+stm_lock results:
+
+1 thread
+120550.031250
+120333.203125
+122927.046875
+
+
+
+rtm_lock results:
+
+1 thread
+114603.960938
+114646.312500
+117546.218750
+
+
+*********************************************** java *****************************************
+
+for 60% lookup 30% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+124685.0
+123970.1
+119373.8
+
+
+
+FG_lock results:
+
+1 thread
+115854.8
+131148.9
+122572.0
+
+
+stm_lock results:
+
+1 thread
+44773.3
+44640.1
+42031.2
+
+
+rtm_lock results:
+
+1 thread
+46218.3
+51622.1
+45557.5
+
+
+*****************************8
+
+for 90% lookup 0% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+159638.2
+172620.1
+196912.1
+
+
+FG_lock results:
+
+1 thread
+152406.9
+187882.3
+196302.5
+
+
+
+stm_lock results:
+
+1 thread
+48400.9
+52157.5
+50377.3
+
+
+rtm_lock results:
+
+1 thread
+53199.4
+60074.0
+60067.0
+
+
+
+*****************************8
+
+for 0% lookup 90% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+86673.8
+83940.1
+87039.2
+
+
+FG_lock results:
+
+1 thread
+83104.3
+84372.3
+84546.4
+
+
+
+stm_lock results:
+
+1 thread
+36249.7
+35342.5
+35167.6
+
+
+rtm_lock results:
+
+1 thread
+38907.3
+44513.1
+36636.6
+
+
+*****************************8
+
+for 0% lookup 0% Range Query 50% insert 50% remove
+
+rw_lock results:
+
+1 thread
+36410.1
+37808.4
+35064.4
+
+
+
+FG_lock results:
+
+1 thread
+30957.2
+31902.1
+34064.9
+
+
+
+stm_lock results:
+
+1 thread
+8406.0
+7809.0
+8365.4
+
+
+
+rtm_lock results:
+
+1 thread
+9572.9
+8478.8
+10296.1
+
+
+*****************************8

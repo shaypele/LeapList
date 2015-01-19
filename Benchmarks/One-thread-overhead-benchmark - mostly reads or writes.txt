@@ -1,0 +1,151 @@
+3 runs for 10 sec for each implementation with various number of threads : 1 2 4 8 and for node size 300
+
+****************************** c *********************************************:
+for 60% lookup 30% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+1072646.500000
+1061408.500000
+1069538.375000
+
+
+
+FG_lock results:
+
+1 thread
+1112127.125000
+1298582.375000
+1312610.125000
+
+
+stm_lock results:
+
+1 thread
+953825.500000
+950440.562500
+947258.187500
+
+
+
+rtm_lock results:
+
+1 thread
+941513.625000
+947343.875000
+941235.562500
+
+
+
+
+*****************************8
+for 0% lookup 0% Range Query 50% insert 50% remove
+rw_lock results:
+
+1 thread
+135417.906250
+134602.437500
+131270.406250
+
+FG_lock results:
+
+1 thread
+174923.218750
+174227.906250
+173691.015625
+
+
+stm_lock results:
+
+1 thread
+120550.031250
+120333.203125
+122927.046875
+
+
+
+rtm_lock results:
+
+1 thread
+114603.960938
+114646.312500
+117546.218750
+
+
+*********************************************** java *****************************************
+
+for 60% lookup 30% Range Query 9% insert 1% remove
+
+rw_lock results:
+
+1 thread
+124685.0
+123970.1
+119373.8
+
+
+
+FG_lock results:
+
+1 thread
+115854.8
+131148.9
+122572.0
+
+
+stm_lock results:
+
+1 thread
+44773.3
+44640.1
+42031.2
+
+
+rtm_lock results:
+
+1 thread
+46218.3
+51622.1
+45557.5
+
+*****************************8
+
+for 0% lookup 0% Range Query 50% insert 50% remove
+
+rw_lock results:
+
+1 thread
+36410.1
+37808.4
+35064.4
+
+
+
+FG_lock results:
+
+1 thread
+30957.2
+31902.1
+34064.9
+
+
+
+stm_lock results:
+
+1 thread
+8406.0
+7809.0
+8365.4
+
+
+
+rtm_lock results:
+
+1 thread
+9572.9
+8478.8
+10296.1
+
+
+*****************************8
