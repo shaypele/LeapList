@@ -201,7 +201,7 @@ static void deallocate_node(node_t *n, ptst_t *ptst)
  * PUBLIC FUNCTIONS
  */
 
-set_t *set_alloc(void)
+set_t **set_alloc(void)
 {
     ptst_t  *ptst;
     node_t *leap, *l;
@@ -257,7 +257,7 @@ set_t *set_alloc(void)
         db[j] = (set_t *) leap;
     }
     critical_exit(ptst);
-    return db[0];
+    return db;
 }
 
 setval_t find(volatile node_t *n, setkey_t k)
@@ -323,7 +323,7 @@ int remove(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst_t 
     return changed;
 }
 
-int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int overwrite, int split, ptst_t *ptst)
+int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int split, ptst_t *ptst)
 {
     int i=0, j=0, changed = 0, m = 0;
 
@@ -360,23 +360,9 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
         {
             if(n->data[j].key == k)
             {
-                if(overwrite)
-                {
-					new_node[m]->data[i].key = n->data[j].key;
-                    new_node[m]->data[i].value = v;
-                    changed = 1;
-#ifdef	USE_TRIE
-                    /* need to use the same trie, so just copy it */
-                    /* The following is removes because the trie will be created at the end of the function
-                       new_node[m]->trie = n->trie;
-                     */
-#endif	/* USE_TRIE */
-                }
-                else 
-                {
-                    exit(9);
-                    break;
-                }
+				new_node[m]->data[i].key = n->data[j].key;
+                new_node[m]->data[i].value = v;
+                changed = 1;
             }
 			else
 			{
@@ -449,15 +435,13 @@ void unlockPredForUpdate(volatile  node_t **pa,int highestLocked)
 	}
 }
 
-setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
+void set_update(set_t **l, setkey_t *k, setval_t *v, int size)
 {
     ptst_t   *ptst;
     volatile node_t volatile *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
     int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
     unsigned long max_height[MAX_ROW];
     node_t *new_node[MAX_ROW][2];
-    unsigned long cnttt = 0;
-    k=k+2; // Avoid sentinel
     int level;
 	node_t* lastLockedNode = 0x0;
 
@@ -465,7 +449,7 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 	node_t *pred = 0x0,*succ = 0x0,*prevPred = 0x0;
 
     ptst = critical_enter();
-    for(j = 0; j<MAX_ROW; j++)
+    for(j = 0; j<size; j++)
     {
         new_node[j][0] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(new_node[j][0]);
@@ -477,7 +461,7 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
 		new_node[j][1]->isMarked = 0;
     }
 	int c = 0;
-	for(j = 0; j<MAX_ROW; j++)
+	for(j = 0; j<size; j++)
     {
 		lastLockedNode  = 0x0;
 		isMarked = 0;
@@ -509,7 +493,7 @@ if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
 		
 #endif	/* USE_TRIE */
 
-        n[j] = search_predecessors(db[j], k, preds[j], succs[j]);
+        n[j] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
 
 		if (lastLockedNode != 0x0 && lastLockedNode != n[j]){
 			if (lastLockedNode->isMarked){
@@ -566,7 +550,7 @@ if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
 	            max_height[j] = new_node[j][0]->level;
 	        }
 
-	        changed[j] = insert(new_node[j], n[j], k, v, overwrite, split[j], ptst);
+	        changed[j] = insert(new_node[j], n[j], k[j] + SENTINEL_DIFF, v[j], split[j], ptst);
 
 			for ( level = 0; valid && ( level < max_height[j] ); level++){
 				pred = preds[j][level];
@@ -692,7 +676,6 @@ if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
 		} 
     }
     critical_exit(ptst);
-    return 0;
 }
 
 void unlockPredForRemove(volatile  node_t **pa,volatile  node_t **pa_Node1 ,int highestLocked, int levelOldNode0 )
@@ -733,7 +716,7 @@ void unlockPredForRemove(volatile  node_t **pa,volatile  node_t **pa_Node1 ,int 
 	
 }
 
-setval_t set_remove(set_t *l, setkey_t k)
+void set_remove(set_t **l, setkey_t *k, int size)
 {
     ptst_t *ptst;
     volatile node_t volatile *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
@@ -743,10 +726,9 @@ setval_t set_remove(set_t *l, setkey_t k)
     int indicator2 = 0,valid = 1;
     node_t *n[MAX_ROW];
 	node_t* lastLockedNode[2];
-    k=k+2; // Avoid sentinel
 
     ptst = critical_enter();
-    for(j=0; j<MAX_ROW; j++)
+    for(j=0; j<size; j++)
     {
 		int highestLocked = -1;
 		char isMarkedArr[2]; 
@@ -778,10 +760,9 @@ retry_remove:
     
 retry_last_remove:
         merge[j] = 0;
-        old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
-		
+		old_node[j][0] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
         /* If the key is not present, just return */
-        if (find(old_node[j][0], k) == 0)
+        if (find(old_node[j][0], k[j] + SENTINEL_DIFF) == 0)
         {
 			if (!old_node[j][0]->live){
         		 goto retry_last_remove;
@@ -797,13 +778,15 @@ retry_last_remove:
 					pthread_mutex_unlock(&old_node[j][0]->lock);
 				old_node[j][0]->isMarked = 0;
 				isMarkedArr[0] = 0;
-				}
+			}
 				
-				if (old_node[j][1]!=0 && old_node[j][1]->isMarked && isMarkedArr[1]){
-					pthread_mutex_unlock(&old_node[j][1]->lock);
+			if (old_node[j][1]!=0 && old_node[j][1]->isMarked && isMarkedArr[1]){
+				pthread_mutex_unlock(&old_node[j][1]->lock);
 				old_node[j][1]->isMarked = 0;
 				isMarkedArr[1] = 0;
-				}
+			}
+			
+			deallocate_node(n[j], ptst);
             continue;
         }
 
@@ -958,7 +941,7 @@ retry_last_remove:
 	            n[j]->high = old_node[j][0]->high;
 	        }
 			
-	        changed[j] = remove(old_node[j], n[j], k, merge[j], ptst);
+			changed[j] = remove(old_node[j], n[j], k[j] + SENTINEL_DIFF, merge[j], ptst);
 			/****** End Remove Setup ***********/
 
 			
@@ -1001,7 +984,7 @@ retry_last_remove:
 			// if node 1's level is bigger than node 0's level, lock preds of higher level of node 1-> 
          	if ( merge[j] && ( old_node[j][0]->level < old_node[j][1]->level ) ){
          		// Find preds of node 1->
-				search_predecessors(db[j], old_node[j][1]->high, preds_node1[j], succs_node1[j]);
+				search_predecessors(l[j], old_node[j][1]->high, preds_node1[j], succs_node1[j]);
          		for(; valid && ( level < old_node[j][1]->level ); level++){
          			pred = preds_node1[j][level];
 					succ = succs_node1[j][level];
@@ -1112,7 +1095,6 @@ retry_last_remove:
     }
 
     critical_exit(ptst);
-    return 0;
 }
 
 

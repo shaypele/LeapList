@@ -201,7 +201,7 @@ static void deallocate_node(node_t *n, ptst_t *ptst)
  * PUBLIC FUNCTIONS
  */
 
-set_t *set_alloc(void)
+set_t **set_alloc(void)
 {
     ptst_t  *ptst;
     node_t *leap, *l;
@@ -243,7 +243,7 @@ set_t *set_alloc(void)
         db[j] = (set_t *) leap;
     }
     critical_exit(ptst);
-    return db[0];
+    return db;
 }
 
 setval_t find(volatile node_t *n, setkey_t k)
@@ -309,7 +309,7 @@ int remove(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst_t 
     return changed;
 }
 
-int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int overwrite, int split, ptst_t *ptst)
+int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int split, ptst_t *ptst)
 {
     int i=0, j=0, changed = 0, m = 0;
 
@@ -346,43 +346,31 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
         {
             if(n->data[j].key == k)
             {
-                if(overwrite)
-                {
-                    new_node[m]->data[i].value = v;
-                    changed = 1;
-#ifdef	USE_TRIE
-                    /* need to use the same trie, so just copy it */
-                    /* The following is removes because the trie will be created at the end of the function
-                       new_node[m]->trie = n->trie;
-                     */
-#endif	/* USE_TRIE */
-                }
-                else 
-                {
-                    exit(9);
-                    break;
-                }
-            }
-
-            if((!changed) && (n->data[j].key > k))
-            {
-                new_node[m]->data[i].key = k;
+				new_node[m]->data[i].key = n->data[j].key;
                 new_node[m]->data[i].value = v;
-                new_node[m]->count++;
                 changed = 1;
-
-                if((!m) && split && (new_node[0]->count == (i+1)))
-                {
-                    new_node[m]->high =  new_node[m+1]->low = new_node[m]->data[i].key;
-                    i = -1;
-                    m = m + 1;
-                }
-
-                i++;
             }
-            new_node[m]->data[i].key = n->data[j].key;
-            new_node[m]->data[i].value = n->data[j].value;
+			else
+			{
+	            if((!changed) && (n->data[j].key > k))
+	            {
+	                new_node[m]->data[i].key = k;
+	                new_node[m]->data[i].value = v;
+	                new_node[m]->count++;
+	                changed = 1;
 
+	                if((!m) && split && (new_node[0]->count == (i+1)))
+	                {
+	                    new_node[m]->high =  new_node[m+1]->low = new_node[m]->data[i].key;
+	                    i = -1;
+	                    m = m + 1;
+	                }
+
+	                i++;
+	            }
+	            new_node[m]->data[i].key = n->data[j].key;
+	            new_node[m]->data[i].value = n->data[j].value;
+			}
             if((!m) && split && (new_node[0]->count == (i+1)))
             {
                 new_node[m]->high =  new_node[m+1]->low = new_node[m]->data[i].key;
@@ -418,21 +406,19 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int o
     return changed;
 }
 
-setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
+void set_update(set_t **l, setkey_t *k, setval_t *v, int size)
 {
     ptst_t   *ptst;
-    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_LEVEL];
+    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
     int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
     unsigned long max_height[MAX_ROW];
-    node_t *new_node[MAX_ROW][2];
-    unsigned long cnttt = 0;
-    k=k+2; // Avoid sentinel
+    node_t *new_node[MAX_ROW][2]; 
 
     vwLock my_order;
-    OrderedRWLock_AcquireWrite(&my_order);
+    OrderedLock_Acquire(&my_order);
 
     ptst = critical_enter();
-    for(j = 0; j<MAX_ROW; j++)
+    for(j = 0; j<size ; j++)
     {
         new_node[j][0] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(new_node[j][0]);
@@ -442,7 +428,7 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
         new_node[j][1]->live = 0;
     }
 
-    for(j = 0; j<MAX_ROW; j++)
+    for(j = 0; j<size; j++)
     {
 
 #ifdef	USE_TRIE
@@ -450,7 +436,7 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
         init_node_trie(new_node[j][1]);
 #endif	/* USE_TRIE */
 
-        n[j] = search_predecessors(db[j], k, preds[j], succs[j]);
+        n[j] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
         if(n[j]->count == NODE_SIZE)
         {
             split[j] = 1; 
@@ -465,12 +451,12 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
             max_height[j] = new_node[j][0]->level;
         }
 
-        changed[j] = insert(new_node[j], n[j], k, v, overwrite, split[j], ptst);
+        changed[j] = insert(new_node[j], n[j], k[j] + SENTINEL_DIFF, v[j], split[j], ptst);
 
     }
 
 
-    for(j = 0; j<MAX_ROW; j++)
+    for(j = 0; j<size ; j++)
     {
         if(changed[j]) // unlock
         {
@@ -537,45 +523,42 @@ setval_t set_update(set_t *l, setkey_t k, setval_t v, int overwrite)
     }
     critical_exit(ptst);
 
-    OrderedRWLock_ReleaseWrite(&my_order);
-
-    return 0;
+    OrderedLock_Release(&my_order);
 }
 
 
 
-setval_t set_remove(set_t *l, setkey_t k)
+void set_remove(set_t **l, setkey_t *k, int size)
 {
     ptst_t *ptst;
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
     int i, j, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
     node_t *n[MAX_ROW];
-    k=k+2; // Avoid sentinel
 
     vwLock my_order;
-    OrderedRWLock_AcquireWrite(&my_order);
+    OrderedLock_Acquire(&my_order);
 
     ptst = critical_enter();
-    for(j=0; j<MAX_ROW; j++)
+    for(j=0; j<size; j++)
     {
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
     }
 
-    for(j=0; j<MAX_ROW; j++)
+    for(j=0; j<size; j++)
     {
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
 #endif	/* USE_TRIE */
     }
 
-    for(j=0; j<MAX_ROW; j++)
+    for(j=0; j<size; j++)
     {
         merge[j] = 0;
-        old_node[j][0] = search_predecessors(db[j], k, preds[j], succs[j]);
+        old_node[j][0] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
 
         /* If the key is not present, just return */
-        if (find(old_node[j][0], k) == 0)
+        if (find(old_node[j][0], k[j] + SENTINEL_DIFF) == 0)
         {
             changed[j] = 0;
             continue;
@@ -620,12 +603,12 @@ setval_t set_remove(set_t *l, setkey_t k)
         }
 
 
-        changed[j] = remove(old_node[j], n[j], k, merge[j], ptst);
+        changed[j] = remove(old_node[j], n[j], k[j] + SENTINEL_DIFF, merge[j], ptst);
 
     }
 
 
-    for(j=0; j<MAX_ROW; j++)
+    for(j=0; j<size; j++)
     {
         if(changed[j])
         {
@@ -660,8 +643,7 @@ setval_t set_remove(set_t *l, setkey_t k)
     }
 
     critical_exit(ptst);
-    OrderedRWLock_ReleaseWrite(&my_order);
-    return 0;
+    OrderedLock_Release(&my_order);
 }
 
 
@@ -676,7 +658,7 @@ setval_t set_lookup(set_t *l, setkey_t k)
     k=k+2; // Avoid sentinel
 
     vwLock my_order;
-    OrderedRWLock_AcquireWrite(&my_order);
+    OrderedLock_Acquire(&my_order);
 
     ptst = critical_enter();
 
@@ -685,7 +667,7 @@ setval_t set_lookup(set_t *l, setkey_t k)
     v = find(n,k);
 
     critical_exit(ptst);
-    OrderedRWLock_ReleaseWrite(&my_order);
+    OrderedLock_Release(&my_order);
 
     return v;
 }
@@ -700,7 +682,7 @@ setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
     high = high+2;
 
     vwLock my_order;
-    OrderedRWLock_AcquireWrite(&my_order);
+    OrderedLock_Acquire(&my_order);
 
     ptst = critical_enter();
 
@@ -713,7 +695,7 @@ setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
 
     critical_exit(ptst);
 
-    OrderedRWLock_ReleaseWrite(&my_order);
+    OrderedLock_Release(&my_order);
 
     return 0;
 

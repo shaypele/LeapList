@@ -4,19 +4,15 @@
 #include "set.h"
 
 /* defines for the leap list itself */
-//#define NODE_SIZE 1024
-//#define NODE_SIZE 500
-//#define NODE_SIZE 200
+
 #define NODE_SIZE 300
 #define MAX_LEVEL 10
-//#define NODE_SIZE 1500
+
+#define SENTINEL_DIFF 2	// The number to increment in order to avoid sentinel.
 
 /* defines for the leap list's trie */
-/* TRIE_KEY_NOT_FOUND should always be (NODE_SIZE) */
-//#define TRIE_KEY_NOT_FOUND NODE_SIZE
-//#define TRIE_KEY_NOT_FOUND 508
-#define TRIE_KEY_NOT_FOUND 8008
-//#define TRIE_KEY_NOT_FOUND 255
+/* TRIE_KEY_NOT_FOUND should always be (NODE_SIZE) - since on valid index could be NODE_SIZE */
+#define TRIE_KEY_NOT_FOUND NODE_SIZE 
 
 typedef setkey_t trie_key_t;
 /* The type trie_val_t should be able to hold all values in a node (i.e., NODE_SIZE + 1 values) */

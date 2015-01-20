@@ -47,10 +47,10 @@
 //#define DO_WRITE_LOG
 
 #ifdef DO_WRITE_LOG
-#define MAX_ITERATIONS 1000000000
+#define MAX_ITERATIONS 100000000
 #define MAX_WALL_TIME 10 /* seconds */
 #else
-#define MAX_ITERATIONS 1000000000
+#define MAX_ITERATIONS 100000000
 #define MAX_WALL_TIME 10 /* seconds */
 #endif
 
@@ -178,7 +178,7 @@ static struct {
     CACHE_PAD(0);
     bool_t alarm_time;
     CACHE_PAD(1);
-    set_t *set;
+    set_t **set;
     CACHE_PAD(2);
 } shared;
 
@@ -194,12 +194,28 @@ static void alarm_handler( int arg)
 static void set_data_initialize()
 {
     unsigned long r = (unsigned long)RDTICK();
-    int i;
+    int i,j;
+	unsigned long arrKeys[MAX_ROW];
+	void* arrVals[MAX_ROW];
+
+	for (j=0 ; j < MAX_ROW ; j++ )
+	{
+		arrVals[j] = (void *)0xdeadbee0;
+	}
 
 #ifdef INIT_EMPTY_SET
     /* Insert the lowest and highest keys */
-    set_update(shared.set, 0, (void *)0xdeadbee0, 1);
-    set_update(shared.set, keys_range - 1, (void *)0xdeadbee0, 1);
+	for (j=0 ; j < MAX_ROW ; j++ )
+	{
+		arrKeys[j] = 0;
+	}
+    set_update(shared.set, arrKeys, arrVals, MAX_ROW);
+
+	for (j=0 ; j < MAX_ROW ; j++ )
+	{
+		arrKeys[j] = keys_range - 1;
+	}
+    set_update(shared.set, arrKeys, arrVals, MAX_ROW);
 #else /* !INIT_EMPTY_SET */
     /* Start search structure off with a well-distributed set of inital keys */
     if(step_distribution == 0) //RANDOM
@@ -208,7 +224,11 @@ static void set_data_initialize()
         {
             if((nrand(r)%100)<full_prop)
             {
-                set_update(shared.set, i, (void *)0xdeadbee0, 1);
+				for (j=0 ; j < MAX_ROW ; j++ )
+				{
+					arrKeys[j] = i;
+				}
+                set_update(shared.set, arrKeys, arrVals, MAX_ROW);
             }
         }
     }
@@ -216,7 +236,11 @@ static void set_data_initialize()
     {
         for ( i = 0; i < keys_range; i += step_distribution ) // distribution = STEP
         {
-            set_update(shared.set, i, (void *)0xdeadbee0, 1);
+			for (j=0 ; j < MAX_ROW ; j++ )
+			{
+				arrKeys[j] = i;
+			}
+            set_update(shared.set, arrKeys, arrVals, MAX_ROW);
         }
 
     }
@@ -224,13 +248,15 @@ static void set_data_initialize()
 
     printf("Set initialization over!\n");
     /* Do a single lookup (to initialize the trie if needed) */
-    set_lookup(shared.set, keys_range / 2);
+    set_lookup(shared.set[0], keys_range / 2);
 }
 static void *thread_start(void *arg)
 {
     unsigned long k;
-    int i;
+    int i,j;
     void *ov, *v;
+	unsigned long arrKeys[MAX_ROW];
+	void* arrVals[MAX_ROW];
     unsigned long  id = (unsigned long)arg;
 
 #ifdef DO_WRITE_LOG
@@ -292,20 +318,35 @@ static void *thread_start(void *arg)
 #endif
         if ( ((r>>4)%100) <( rq_prop))
         {
-            ov = v = set_rq(shared.set, k, (k+rq_size));
+			// rq on first list.
+            ov = v = set_rq(shared.set[0], k, (k+rq_size));
         }
         else if(((r>>4)%100) < look_prop) 
         {
-            ov = v = set_lookup(shared.set, k);
+			// lookup on first list.
+            ov = v = set_lookup(shared.set[0], k);
         }
 		else if (((r >> 12) & 1)){
 				v = (void *)((r&~7) | 0x8);
-				ov = set_update(shared.set, k, v, 1);
+
+				for (j=0 ; j < MAX_ROW ; j++ )
+				{
+					arrKeys[j] = k;
+					arrVals[j] = v;
+				}
+				
+				set_update(shared.set, arrKeys, arrVals, MAX_ROW);
 		}
 		else
 		{
 			v = NULL;
-			ov = set_remove(shared.set, k);
+
+			for (j=0 ; j < MAX_ROW ; j++ )
+			{
+				arrKeys[j] = k;
+			}
+			
+			set_remove(shared.set, arrKeys, MAX_ROW);
 		}
 
 #ifdef DO_WRITE_LOG

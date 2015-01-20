@@ -5,6 +5,7 @@
 typedef unsigned long setkey_t;
 typedef void         *setval_t;
 
+#define MAX_ROW 4
 
 #ifdef __SET_IMPLEMENTATION__
 
@@ -15,7 +16,7 @@ typedef void         *setval_t;
 /* Fine for 2^NUM_LEVELS nodes. */
 #define NUM_LEVELS 20
 
-#define MAX_ROW 4
+
 
 /* Internal key values with special meanings. */
 #define INVALID_FIELD   (0)    /* Uninitialised field value.     */
@@ -71,25 +72,25 @@ typedef void set_t; /* opaque */
 void _init_set_subsystem(void);
 
 /*
- * Allocate an empty set.
+ * Allocate an empty set. Returns a pointer to the database containing the lists.
  */
-set_t *set_alloc(void);
+set_t **set_alloc(void);
 
 /*
- * Add mapping (@k -> @v) into set @s. Return previous mapped value if
+ * Add mapping (@k[i] -> @v[i]) into set @s[i], where  0<= i < size . 
+ * Return previous mapped value if
  * one existed, or NULL if no previous mapping for @k existed.
- * 
- * If @overwrite is FALSE, then if a mapping already exists it is not
- * modified, and the existing value is returned unchanged. It is possible
- * to see if the value was changed by observing if the return value is NULL.
+ * @Size - number of elements in the given arrays 
  */
-setval_t set_update(set_t *s, setkey_t k, setval_t v, int overwrite);
+void set_update(set_t **s, setkey_t *k, setval_t *v, int size);
 
 /*
- * Remove mapping for key @k from set @s. Return value associated with
+ * Remove mapping for key @k[i] from set @s[i], where  0<= i < size.
+ * @Size - number of elements in the given arrays 
+ * Return value associated with
  * removed mapping, or NULL is there was no mapping to delete.
  */
-setval_t set_remove(set_t *s, setkey_t k);
+void set_remove(set_t **s, setkey_t *k, int size);
 
 /*
  * Look up mapping for key @k in set @s. Return value if found, else NULL.
