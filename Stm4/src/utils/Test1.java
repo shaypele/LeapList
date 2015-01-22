@@ -20,7 +20,7 @@ public class Test1 {
     static PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<Boolean>(false);
     static PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
     static final int arrSize = 10000000;
-    static final int initSize = arrSize/1000; 
+    static final int initSize = arrSize/100; 
     static int numberOfLists;
     
 	public static void main(String[] args) {
@@ -108,7 +108,6 @@ public class Test1 {
 		}
 		
 		System.out.println("initiating threads\n");
-		LeapListDB.returnOnSplit = true;
 		workers = new MyThread[numOfThreads];
 		threads = new Thread[numOfThreads];
 		

@@ -19,8 +19,8 @@ public class Test1 {
     static long endTime;
     static PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<Boolean>(false);
     static PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
-    static final int arrSize = 100000000;
-    static final int initSize = arrSize/1000; 
+    static final int arrSize = 10000000;
+    static final int initSize = arrSize/100; 
     static int numberOfLists;
     
 	public static void main(String[] args) {
