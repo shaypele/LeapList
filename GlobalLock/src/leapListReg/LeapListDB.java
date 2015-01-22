@@ -55,22 +55,26 @@ public class LeapListDB {
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
 		dbLock.lock();
 		try {
-			LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
-			LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-			LeapNode[] n = new LeapNode[size];
-			LeapNode [][] newNode = new LeapNode[size][2];
+			LeapNode[] pa = null ;
+			LeapNode[] na = null ;
+			LeapNode n ;
+			LeapNode[] newNode = new LeapNode[2];
 			int [] maxHeight = new int[size];
+			long[] newKeys = new long[size];
 			boolean [] split = new boolean [size];
 			boolean [] changed = new boolean [size];
 			
 			for(int i = 0; i < size; i++){
-				newNode[i][0] = new LeapNode();
-				newNode[i][1] = new LeapNode();
-				keys[i] += 2 ; // avoid sentinel; 
+				
+				newKeys[i] = keys[i] + 2 ; // avoid sentinel; 
 			}
 			for (int i = 0; i < size ; i++){
-				n[i] = updateSetup (ll[i], keys[i], values[i], pa[i], na[i], newNode[i], maxHeight, split, changed, i);
-				updateRelease (pa[i], na[i], n[i], newNode[i], split, changed, i);
+				pa = new LeapNode[LeapList.MAX_LEVEL];
+				na = new LeapNode[LeapList.MAX_LEVEL];
+				newNode[0] = new LeapNode();
+				newNode[1] = new LeapNode();
+				n = updateSetup (ll[i], newKeys[i], values[i], pa, na, newNode, maxHeight, split, changed, i);
+				updateRelease (pa, na, n, newNode, split, changed, i);
 			}
 		} finally {
 			dbLock.unlock();
@@ -82,7 +86,7 @@ public class LeapListDB {
 	 * The method uses Random() to return a byte value with a 50% chance increment starting from 1,
 	 */
 	private byte getLevel(){
-		//Random rand = new Random();
+
 		long r = ThreadLocalRandom.current().nextLong();
 		byte l = 1;
 		r = (r >> 4) & ((1 << (LeapList.MAX_LEVEL - 1)) -1);
@@ -258,21 +262,25 @@ public class LeapListDB {
 	{
 		dbLock.lock();
 		try {
-		    LeapNode[][]  pa = new LeapNode[size][LeapList.MAX_LEVEL];
-		    LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-		    LeapNode[] n = new LeapNode[size];
-		    LeapNode[][] oldNode = new LeapNode[size][2];
+		    LeapNode[]  pa = null;
+		    LeapNode[] na = null;
+		    LeapNode n = null;
+		    LeapNode[] oldNode = null;
+		    long[] newKeys = new long[size];
 		    int j;
 		    boolean[] changed = new boolean[size], merge = new boolean[size];
 		   
 	
 		    for(j=0; j<size; j++)
 		    {
-		        keys[j]+=2; // Avoid sentinel
+		    	newKeys[j] =  keys[j]+2; // Avoid sentinel
 		    }
 		    for (int i = 0; i < size; i++){
-		    	n[i] = RemoveSetup(ll[i],keys[i], pa[i], na[i], oldNode[i], merge, changed, i);
-		    	RemoveReleaseAndUpdate(pa[i], na[i], n[i], oldNode[i], merge, changed, i);
+		    	pa = new LeapNode[LeapList.MAX_LEVEL];
+				na = new LeapNode[LeapList.MAX_LEVEL];
+				oldNode = new LeapNode[2];
+		    	n = RemoveSetup(ll[i],newKeys[i], pa, na, oldNode, merge, changed, i);
+		    	RemoveReleaseAndUpdate(pa, na, n, oldNode, merge, changed, i);
 		    }
 		} finally {
 			dbLock.unlock();

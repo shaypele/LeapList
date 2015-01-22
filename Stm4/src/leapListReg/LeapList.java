@@ -28,42 +28,40 @@ public class LeapList {
 	@Atomic()
 	LeapNode searchPredecessor ( long key, LeapNode[] pa, LeapNode[] na){
 		
-		LeapNode x, x_next = null;
-		boolean   xRef = false; 
+		LeapNode x, x_next = null,xPred = null;
+		
 		boolean restartLook = false;
 		do{
-			x = head;
-			xRef = false; 
-			restartLook = false;
-			for (int i = MAX_LEVEL -1; i >= 0; i--)
-			{
-				while (true)
-				{
-					x_next = x.getNext(i);
-					if (x_next.high >= key)
-						break;
-					else
-					{
-						x = x_next;
-						xRef = x.Marks[i];
-					}
-				}
-			  if (xRef ||  x.Marks[i])
-			  {
-				  restartLook = true;
-			  }
-			  if(restartLook == true)
+		x = head;
+		xPred = head;
+		//xRef = false; 
+		restartLook = false;
+		for (int i = MAX_LEVEL -1; i >= 0; i--) {
+			while (true){
+				x_next = x.getNext(i);
+				if (!x_next.live || x.Marks[i] ){
+					restartLook = true;
 					break;
-			  
-				if (pa != null)
-				{
-					pa[i] = x;
 				}
-				if (na != null)
+				if (x_next.high >= key)
+					break;
+				else
 				{
-					na[i] = x_next;
+					xPred  = x;
+					x = x_next;
 				}
 			}
+		  if (xPred.Marks[i] ||  x.Marks[i] )
+			  restartLook = true;
+			if(restartLook == true){
+				break;
+			}
+			if (pa != null)
+				pa[i] = x;
+			if (na != null)
+				na[i] = x_next;
+			
+		}
 		}while(restartLook);
 		return x_next;
 	}

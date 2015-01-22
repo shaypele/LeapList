@@ -74,6 +74,7 @@
     <ClCompile Include="gc.c" />
     <ClCompile Include="leap_cop_multi.c" />
     <ClCompile Include="leap_cop_multi_htm.c" />
+    <ClCompile Include="leap_FG_lock_multi.c" />
     <ClCompile Include="leap_rwlock_multi.c" />
     <ClCompile Include="leap_stm_multi.c" />
     <ClCompile Include="leap_tm_lock_multi.c" />

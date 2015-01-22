@@ -51,7 +51,7 @@ public class LeapNode {
 	}
 	
 	public void setNext(int level, LeapNode node){
-		next[level] = (node);
+		next[level] = node;
 	}
 	
 }

@@ -48,6 +48,9 @@
     <ClCompile Include="trie.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="leap_FG_lock_multi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="alpha_defns.h">

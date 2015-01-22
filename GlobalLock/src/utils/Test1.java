@@ -1,8 +1,6 @@
 package utils;
 
-import java.util.Queue;
 import java.util.Random;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
@@ -11,6 +9,9 @@ public class Test1 {
 	static int numOfThreads;
 	static int keyRange;
 	static int maxKey;
+	static int rangeProp;
+	static int insertProp;
+	static int lookUpProp;
     static int seconds;
     static Thread[] threads;
     static MyThread[] workers;
@@ -23,8 +24,8 @@ public class Test1 {
     static int numberOfLists;
     
 	public static void main(String[] args) {
-		if (args.length != 5){
-			System.out.println("not enough arguments: <number of Threads> <max key> <key Range> <seconds> <number of lists>");
+		if (args.length != 8){
+			System.out.println("not enough arguments: <number of Threads> <max key> <key Range> <seconds> <number of lists> <LookUp Proportion> <Range Proportion> <Insert Proportion>");
 			return;
 		}
 		try {
@@ -33,6 +34,9 @@ public class Test1 {
 			keyRange = Integer.parseInt(args[2]);
 		    seconds = Integer.parseInt(args[3]);
 		    numberOfLists = Integer.parseInt(args[4]);
+		    lookUpProp = Integer.parseInt(args[5]);
+		    rangeProp= Integer.parseInt(args[6]);
+		    insertProp = Integer.parseInt(args[7]);
 		
 		} catch(NumberFormatException e){
 			System.out.println("arguments are not all ints");
@@ -78,11 +82,11 @@ public class Test1 {
 		//fill the op queue
 		for (int i = 0; i < arrSize; i++) {
 			int index = (Math.abs(rand.nextInt()) % 100);
-			if (index <= 59)
+			if (index <= lookUpProp -1)
 				opArr[i] = 0;
-			else if (index <= 89)
+			else if (index <= lookUpProp + rangeProp -1)
 				opArr[i] = 1;
-			else if (index <=98)
+			else if (index <=insertProp + lookUpProp + rangeProp -1)
 				opArr[i] = 2;
 			else
 				opArr[i] = 3;
@@ -159,7 +163,7 @@ public class Test1 {
 		System.out.println("\nNumber of range quaries: " + rangeCounter);
 		System.out.println("\nNumber of updates: " + updateCounter);
 		System.out.println("\nNumber of removes: " + removeCounter);
-		System.out.println("\nTotal number of successes: " + totCounter + "\nOps per seconds: " +  totCounter/((endTime - startTime)/1000) + "\n");
+		System.out.println("\nTotal number of successes: " + totCounter + "\nOps per seconds: " +  (double)totCounter/((endTime - startTime)/1000) + "\n");
 		
 		return;
 		

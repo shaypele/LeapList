@@ -1,6 +1,7 @@
 package leapListReg;
 
 import java.util.concurrent.ThreadLocalRandom;
+
 import utils.Trie;
 
 public class LeapListDB {
@@ -41,29 +42,32 @@ public class LeapListDB {
 	 * It updates the key[i] value[i] pair for LeapList[i], by calling updateSetup() and updateRelease().
 	 */
 	public void leapListUpdate (LeapList [] ll, long [] keys, Object [] values, int size){
-		LeapNode[][] pa = new LeapNode[size][LeapList.MAX_LEVEL];
-		LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-		LeapNode[] n = new LeapNode[size];
-		LeapNode [][] newNode = new LeapNode[size][2];
+		LeapNode[] pa = null;
+		LeapNode[] na = null;
+		LeapNode n = null;
+		LeapNode[] newNode = new LeapNode[2];
 		int [] maxHeight = new int[size];
+		long[] newKeys = new long[size];
 		boolean [] split = new boolean [size];
 		boolean [] changed = new boolean [size];
 		
 		for(int i = 0; i < size; i++){
-			newNode[i][0] = new LeapNode();
-			newNode[i][1] = new LeapNode();
-			keys[i] += 2 ; // avoid sentinel; 
+			newKeys[i] = keys[i] + 2 ; // avoid sentinel; 
 		}
 		
 		for (int i = 0 ; i < size; i++){
+			pa = new LeapNode[LeapList.MAX_LEVEL];
+			na = new LeapNode[LeapList.MAX_LEVEL];
+			newNode[0] = new LeapNode();
+			newNode[1] = new LeapNode();
 			LeapNode lastLockedNode = null;
 			boolean isMarked = false;
 			while (true){
 				// Get predecessors here, but create new nodes only after lock is acquired
-				ll[i].searchPredecessor(keys [i], pa[i], na[i]);	
-				n[i] = na[i][0];
+				ll[i].searchPredecessor(newKeys[i], pa, na);	
+				n = na[0];
 				
-				if (lastLockedNode != null && lastLockedNode != n[i]){
+				if (lastLockedNode != null && lastLockedNode != n){
 					if (lastLockedNode.nodeLock.isLocked()){
 						lastLockedNode.unlock();
 					}
@@ -75,23 +79,23 @@ public class LeapListDB {
 					LeapNode pred,succ, prevPred =null;
 					boolean valid = true;
 					if (isMarked ||
-						(!n[i].Marked && n[i].live ) )
+						(!n.Marked && n.live ) )
 					{
 						if ( !isMarked ){
-							n[i].lock();
-							if (n[i].Marked){
-								n[i].unlock();
+							n.lock();
+							if (n.Marked){
+								n.unlock();
 								continue;
 							}
-							lastLockedNode = n[i];
-							n[i].Marked = true;
+							lastLockedNode = n;
+							n.Marked = true;
 							isMarked = true;
 						}
 						// Create new nodes and decide whether to split or not only after lock has been acquired
-						updateSetup (ll[i], keys[i], values[i], n[i], newNode[i], maxHeight, split, changed, i);
+						updateSetup (ll[i], newKeys[i], values[i], n, newNode, maxHeight, split, changed, i);
 						for ( int level = 0; valid && ( level < maxHeight[i] ); level++){
-							pred = pa[i][level];
-							succ = na[i][level];
+							pred = pa[level];
+							succ = na[level];
 							if (pred != prevPred){
 								pred.lock();
 								highestLocked = (byte) level;
@@ -102,8 +106,8 @@ public class LeapListDB {
 						if (!valid){
 							continue;
 						}	
-						updateRelease (pa[i], na[i], n[i], newNode[i], split, changed, i);
-						n[i].unlock();
+						updateRelease (pa, na, n, newNode, split, changed, i);
+						n.unlock();
 						break;
 					}
 					else
@@ -114,10 +118,10 @@ public class LeapListDB {
 				finally{
 					LeapNode prevPred = null;
 					for (int j = 0 ; j <= highestLocked ; j++ ){
-						if ( pa[i][j]!=prevPred )
+						if ( pa[j]!=prevPred )
 						{
-							pa[i][j].unlock();
-							prevPred = pa[i][j];
+							pa[j].unlock();
+							prevPred = pa[j];
 						}
 					}
 				}
@@ -309,20 +313,25 @@ public class LeapListDB {
 	public void leapListRemove(LeapList[] ll, long[] keys, int size)
 	{
 	
-	    LeapNode[][]  pa = new LeapNode[size][LeapList.MAX_LEVEL];
-	    LeapNode[][] na = new LeapNode[size][LeapList.MAX_LEVEL];
-	    LeapNode[][] pa_Node1 = new LeapNode[size][LeapList.MAX_LEVEL];
- 		LeapNode[][] na_Node1 = new LeapNode[size][LeapList.MAX_LEVEL];
-	    LeapNode[] n = new LeapNode[size];
-	    LeapNode[][] oldNode = new LeapNode[size][2];
+	    LeapNode[]  pa = null;
+	    LeapNode[] na = null;
+	    LeapNode[] pa_Node1 = null;
+ 		LeapNode[] na_Node1 = null;
+	    LeapNode n = null;
+	    LeapNode[] oldNode = new LeapNode[2];
+	    long[] newKeys = new long[size];
 	    int j;
 	    boolean[] changed = new boolean[size], merge = new boolean[size];
 	   
 
 	    for(j=0; j<size; j++)
 	    {
-	        n[j] = new LeapNode();
-	        keys[j]+=2; // Avoid sentinel
+	    	pa = new LeapNode[LeapList.MAX_LEVEL];
+			na = new LeapNode[LeapList.MAX_LEVEL];
+			pa_Node1 = new LeapNode[LeapList.MAX_LEVEL];
+			na_Node1 = new LeapNode[LeapList.MAX_LEVEL];
+	    	n = new LeapNode();
+	        newKeys[j] = keys[j]+2; // Avoid sentinel
 	        
 	        boolean[] isMarkedArr = new boolean[2]; 
 	        isMarkedArr[0] = false;
@@ -330,30 +339,30 @@ public class LeapListDB {
 	        
 	        while (true){
 	        	// Get predecessors here, but create new nodes only after lock is acquired
-				 ll[j].searchPredecessor( keys[j], pa[j], na[j]);
-			     oldNode[j][0] = na[j][0];
+				 ll[j].searchPredecessor( newKeys[j], pa, na);
+			     oldNode[0] = na[0];
 			     byte highestLocked = -1;
 			     
 			     /* If the key is not present, just return 
 			      * In case, a node was previously locked, unlock it*/
-		         if (find(oldNode[j][0], keys[j]) == null)
+		         if (find(oldNode[0], newKeys[j]) == null)
 		         {
-		        	 if (!oldNode[j][0].live){
+		        	 if (!oldNode[0].live){
 		        		 continue;
 		        	 }
 		        		 
 		        	 changed[j] = false;
 		        	 
-		        	 oldNode[j][1] = oldNode[j][0].getNext(0);
-		 			if (oldNode[j][0].Marked && isMarkedArr[0]){
-	 					oldNode[j][0].unlock();
-		 				oldNode[j][0].Marked = false;
+		        	 oldNode[1] = oldNode[0].getNext(0);
+		 			if (oldNode[0].Marked && isMarkedArr[0]){
+	 					oldNode[0].unlock();
+		 				oldNode[0].Marked = false;
 		 				isMarkedArr[0] = false;
 		 			}
 		 				
-	 				if (oldNode[j][1]!=null && oldNode[j][1].Marked && isMarkedArr[1]){
-	 					oldNode[j][1].unlock();
-		 				oldNode[j][1].Marked = false;
+	 				if (oldNode[1]!=null && oldNode[1].Marked && isMarkedArr[1]){
+	 					oldNode[1].unlock();
+		 				oldNode[1].Marked = false;
 		 				isMarkedArr[1] = false;
 	 				}
 		            break;
@@ -362,17 +371,17 @@ public class LeapListDB {
 		        // Find out if it's a merge or not.
 		         // Merge if it's there are less elements two nodes than the merge threshold.
 		         // Merge & split thresholds should be different to avoid constant merge/split 
-		        oldNode[j][1] = oldNode[j][0].getNext(0);
-		 		if (oldNode[j][1]!= null && 
-		          		(oldNode[j][0].count + oldNode[j][1].count - 1) <= LeapList.NODE_SIZE - 10 ) 
+		        oldNode[1] = oldNode[0].getNext(0);
+		 		if (oldNode[1]!= null && 
+		          		(oldNode[0].count + oldNode[1].count - 1) <= LeapList.NODE_SIZE - 10 ) 
 		 		{
 		          		merge[j] = true;
 		 		}
 		 		else
 		 		{
-		 			int count1 = 0;
+		 			/*int count1 = 0;
 		 			if (oldNode[j][1] != null )
-		 				count1 = oldNode[j][1].count;
+		 				count1 = oldNode[j][1].count;*/
 		 			merge[j] = false;
 		 		}
 		         
@@ -380,10 +389,10 @@ public class LeapListDB {
 			    	 LeapNode pred,succ, prevPred =null;
 			    	 boolean valid = true;
 			    	 if ( 	isMarkedArr[0] || 
-			    			(  !oldNode[j][0].Marked &&  oldNode[j][0].live ) ){
+			    			(  !oldNode[0].Marked &&  oldNode[0].live ) ){
 			    		 
 							if (merge[j] && !(isMarkedArr[1] || 
-													(  !oldNode[j][1].Marked &&  oldNode[j][1].live ))  )
+													(  !oldNode[1].Marked &&  oldNode[1].live ))  )
 							{
 								continue;
 							}
@@ -391,12 +400,12 @@ public class LeapListDB {
 			    		{
 				    		if (!isMarkedArr[0])
 				    		{
-				    			 oldNode[j][0].lock();
-				    			 if (oldNode[j][0].Marked){
-				    				 oldNode[j][0].unlock();
+				    			 oldNode[0].lock();
+				    			 if (oldNode[0].Marked){
+				    				 oldNode[0].unlock();
 				    				 continue;
 				    			 }
-				    			 oldNode[j][0].Marked = true;
+				    			 oldNode[0].Marked = true;
 				    			 isMarkedArr[0] = true;
 				    		}
 			    		}
@@ -407,22 +416,22 @@ public class LeapListDB {
 			    				// Lock old node 1
 			    				if (!isMarkedArr[1])
 					    		{
-					    			 oldNode[j][1].lock();
-					    			 if (oldNode[j][1].Marked){
-					    				 oldNode[j][1].unlock();
+					    			 oldNode[1].lock();
+					    			 if (oldNode[1].Marked){
+					    				 oldNode[1].unlock();
 					    				 continue;
 					    			 }
-					    			 oldNode[j][1].Marked = true;
+					    			 oldNode[1].Marked = true;
 					    			 isMarkedArr[1] = true;
 					    		}
 			    				
 			    				// Lock old node 0
-			    				 oldNode[j][0].lock();
-				    			 if (oldNode[j][0].Marked){
-				    				 oldNode[j][0].unlock();
+			    				 oldNode[0].lock();
+				    			 if (oldNode[0].Marked){
+				    				 oldNode[0].unlock();
 				    				 continue;
 				    			 }
-				    			 oldNode[j][0].Marked = true;
+				    			 oldNode[0].Marked = true;
 				    			 isMarkedArr[0] = true;
 				    		}
 			    		}
@@ -432,26 +441,26 @@ public class LeapListDB {
 			    		 
 			         	// Mark and lock second node
 			         	if (merge[j] && !isMarkedArr[1]){
-			         		 if (!oldNode[j][1].tryLock()){
-			         			oldNode[j][0].Marked = false;
+			         		 if (!oldNode[1].tryLock()){
+			         			oldNode[0].Marked = false;
 				    			 isMarkedArr[0] = false;
-			         			oldNode[j][0].unlock();
+			         			oldNode[0].unlock();
 			         			 continue;
 			         		 }
-			    			 if (oldNode[j][1].Marked){
-			    				 oldNode[j][1].unlock();
+			    			 if (oldNode[1].Marked){
+			    				 oldNode[1].unlock();
 			    				 continue;
 			    			 }
-			    			 oldNode[j][1].Marked = true;
+			    			 oldNode[1].Marked = true;
 			    			 isMarkedArr[1] = true;
 			         	}
 			         	
-			         	RemoveSetup(ll[j],keys[j], n[j], oldNode[j], merge, changed,j);
+			         	RemoveSetup(ll[j],newKeys[j], n, oldNode, merge, changed,j);
 			         	//first, lock all prevs of node 0. Later of, if needed, lock preds of node 1.
 			         	byte level;
-			         	for ( level = 0; valid && ( level < oldNode[j][0].level ); level++){
-							pred = pa[j][level];
-							succ = na[j][level];
+			         	for ( level = 0; valid && ( level < oldNode[0].level ); level++){
+							pred = pa[level];
+							succ = na[level];
 							if (pred != prevPred){
 								pred.lock();
 								highestLocked = level;
@@ -464,12 +473,12 @@ public class LeapListDB {
 						}	
 						
 						// if node 1's level is bigger than node 0's level, lock preds of higher level of node 1. 
-			         	if ( merge[j] && ( oldNode[j][0].level < oldNode[j][1].level ) ){
+			         	if ( merge[j] && ( oldNode[0].level < oldNode[1].level ) ){
 			         		// Find preds of node 1.
-			         		ll[j].searchPredecessor(oldNode[j][1].high, pa_Node1[j], na_Node1[j] );
-			         		for(; valid && ( level < oldNode[j][1].level ); level++){
-			         			pred = pa_Node1[j][level];
-								succ = na_Node1[j][level];
+			         		ll[j].searchPredecessor(oldNode[1].high, pa_Node1, na_Node1 );
+			         		for(; valid && ( level < oldNode[1].level ); level++){
+			         			pred = pa_Node1[level];
+								succ = na_Node1[level];
 								if (pred != prevPred){
 									pred.lock();
 									highestLocked = level;
@@ -482,10 +491,10 @@ public class LeapListDB {
 							}	
 			         	}
 			         	
-			         	RemoveReleaseAndUpdate(pa[j], na[j], n[j], oldNode[j], merge, changed, j, pa_Node1[j], na_Node1[j]);
-			         	oldNode[j][0].unlock();
+			         	RemoveReleaseAndUpdate(pa, na, n, oldNode, merge, changed, j, pa_Node1, na_Node1);
+			         	oldNode[0].unlock();
 			         	if (merge[j]){
-			         		oldNode[j][1].unlock();
+			         		oldNode[1].unlock();
 			         	}
 			         	break;
 			    	 }
@@ -499,29 +508,29 @@ public class LeapListDB {
 			    	 int iterateTill = -1;
 			    	 byte level;
 			    	 
-			    	 if ( highestLocked < oldNode[j][0].level ){
+			    	 if ( highestLocked < oldNode[0].level ){
 			    		 iterateTill = highestLocked; 
 			    	 }
 			    	 else{
-			    		 iterateTill = oldNode[j][0].level - 1;
+			    		 iterateTill = oldNode[0].level - 1;
 			    	 }
 			    	 // First unlock all pred of node 0.
 					 for (level = 0 ; level <= iterateTill ; level++ ){
-						if ( pa[j][level]!=prevPred )
+						if ( pa[level]!=prevPred )
 						{
-							pa[j][level].unlock();
-							prevPred = pa[j][level];
+							pa[level].unlock();
+							prevPred = pa[level];
 						}
 					 }
 					 
 					 // if needed , unlock rest of preds of node 1.
-					if ( highestLocked >= oldNode[j][0].level ){
+					if ( highestLocked >= oldNode[0].level ){
 						iterateTill = highestLocked; 
 						for (; level <= iterateTill ; level++ ){
-							if ( pa_Node1[j][level]!=prevPred )
+							if ( pa_Node1[level]!=prevPred )
 							{
-								pa_Node1[j][level].unlock();
-								prevPred = pa_Node1[j][level];
+								pa_Node1[level].unlock();
+								prevPred = pa_Node1[level];
 							}
 						}
 					}

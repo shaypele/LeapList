@@ -1,14 +1,8 @@
 package utils;
 
 
-
-import java.util.Random;
-
 import leapListReg.LeapList;
 import leapListReg.LeapListDB;
-
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.Queue;
 
 
 public class MyThread extends Thread {
