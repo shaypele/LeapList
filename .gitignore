@@ -155,3 +155,112 @@ Stm4/res_rand_300_2
 Stm4/temp/deuceAgent-1.3.0.jar
 Stm4/temp/runNorm
 Stm4/temp/runRand
+C++ code/now 2/=log.txt
+C++ code/now 2/alpha_defns.h
+C++ code/now 2/gc.c
+C++ code/now 2/gc.h
+C++ code/now 2/ia64_defns.h
+C++ code/now 2/intel_defns.h
+C++ code/now 2/leap_cop_multi.c
+C++ code/now 2/leap_cop_multi_htm.c
+C++ code/now 2/leap_FG_lock_multi.c
+C++ code/now 2/leap_global_lock_multi.c
+C++ code/now 2/leap_rtm_multi.c
+C++ code/now 2/leap_rtm_multi.c.my
+C++ code/now 2/leap_rtm_multi.c_okd
+C++ code/now 2/leap_rwlock_multi
+C++ code/now 2/leap_stm.h
+C++ code/now 2/leap_stm_multi.c
+C++ code/now 2/leap_tm_lock_multi.c
+C++ code/now 2/leap_tm_lock_multi_adi.c
+C++ code/now 2/LeapListVS.sdf
+C++ code/now 2/LeapListVS.sln
+C++ code/now 2/LeapListVS.v12.suo
+C++ code/now 2/LeapListVS.vcxproj
+C++ code/now 2/LeapListVS.vcxproj.filters
+C++ code/now 2/log1
+C++ code/now 2/Makefile
+C++ code/now 2/Makefile - Copy for only RW
+C++ code/now 2/Makefile.new
+C++ code/now 2/Makefile.orig
+C++ code/now 2/mips_defns.h
+C++ code/now 2/portable_defns.h
+C++ code/now 2/ppc_defns.h
+C++ code/now 2/ptst.c
+C++ code/now 2/ptst.h
+C++ code/now 2/random.h
+C++ code/now 2/replay
+C++ code/now 2/replay.c
+C++ code/now 2/run20121025.sh
+C++ code/now 2/rwlock.h
+C++ code/now 2/set.h
+C++ code/now 2/setenv.txt
+C++ code/now 2/sparc_defns.h
+C++ code/now 2/stm.h
+C++ code/now 2/trie.c
+C++ code/now 2/trie.h
+C++ code/now on remote/alpha_defns.h
+C++ code/now on remote/fa
+C++ code/now on remote/fa.c
+C++ code/now on remote/gc.c
+C++ code/now on remote/gc.h
+C++ code/now on remote/gc.o
+C++ code/now on remote/ia64_defns.h
+C++ code/now on remote/intel_defns.h
+C++ code/now on remote/intel_defns.h.old
+C++ code/now on remote/leap_cop_multi
+C++ code/now on remote/leap_cop_multi.c
+C++ code/now on remote/leap_cop_multi_htm.c
+C++ code/now on remote/leap_FG_lock_multi
+C++ code/now on remote/leap_FG_lock_multi.c
+C++ code/now on remote/leap_FG_lock_multi.c.no-init
+C++ code/now on remote/leap_FG_lock_multi.c.old
+C++ code/now on remote/leap_FG_lock_multi.c.Working-16.12
+C++ code/now on remote/leap_FG_lock_multi.o
+C++ code/now on remote/leap_rtm_multi
+C++ code/now on remote/leap_rtm_multi.c
+C++ code/now on remote/leap_rtm_multi.c - with failure threshold
+C++ code/now on remote/leap_rtm_multi.c2
+C++ code/now on remote/leap_rtm_multi.o
+C++ code/now on remote/leap_rwlock_multi
+C++ code/now on remote/leap_rwlock_multi.c
+C++ code/now on remote/leap_rwlock_multi.o
+C++ code/now on remote/leap_stm
+C++ code/now on remote/leap_stm.h
+C++ code/now on remote/leap_stm_multi
+C++ code/now on remote/leap_stm_multi.c
+C++ code/now on remote/leap_tm_lock_multi
+C++ code/now on remote/leap_tm_lock_multi.c
+C++ code/now on remote/leap_tm_lock_multi.o
+C++ code/now on remote/leap_tm_lock_multi_adi.c
+C++ code/now on remote/LeapListVS.sdf
+C++ code/now on remote/LeapListVS.sln
+C++ code/now on remote/LeapListVS.v12.suo
+C++ code/now on remote/LeapListVS.vcxproj
+C++ code/now on remote/LeapListVS.vcxproj.filters
+C++ code/now on remote/log1
+C++ code/now on remote/Makefile
+C++ code/now on remote/Makefile.changed
+C++ code/now on remote/Makefile.rw
+C++ code/now on remote/mips_defns.h
+C++ code/now on remote/myfil
+C++ code/now on remote/myfile
+C++ code/now on remote/portable_defns.h
+C++ code/now on remote/ppc_defns.h
+C++ code/now on remote/ptst.c
+C++ code/now on remote/ptst.h
+C++ code/now on remote/ptst.o
+C++ code/now on remote/random.h
+C++ code/now on remote/replay
+C++ code/now on remote/replay.c
+C++ code/now on remote/replay.o
+C++ code/now on remote/run20121025.sh
+C++ code/now on remote/rwlock.h
+C++ code/now on remote/rwlock.h.old
+C++ code/now on remote/set.h
+C++ code/now on remote/set_harness.o
+C++ code/now on remote/sparc_defns.h
+C++ code/now on remote/stm.h
+C++ code/now on remote/trie.c
+C++ code/now on remote/trie.h
+C++ code/now on remote/trie.o

@@ -1,0 +1,24 @@
+How to run c implementations :
+
+Implementations  in c :
+
+a. leap_global_lock_multi 	- Global lock implementation.
+b. leap_FG_lock_multi		- Fine Grained Locking implementation.
+c. leap_software_trans_multi- Software transaction  implementation.
+d.leap_hardware_trans_multi - Improved algorithm of the software transaction using Hardware transaction  implementation.
+								hardware transactions are meant to be run only by a Haswell Intel processor.
+
+In order to run any of the applications :
+1. run make all. This will compile all of the applications mentioned above.
+2. For each application the following argument are needed : 
+	2.1 <num_threads> 		- number of threads to run parallely
+	2.2 <look_proportion> 	- percentage of the look operation
+	2.3 <rq_proportion> 	- percentage of the range query operation. percentage of Update and remove is split evenly with the remainder of non lookup or range query operations percentage.
+	2.4 <rq_size> 			- Range size of keys to look for when calling range query. range query will look for key from 'low' to 'low' + rq_size
+	2.5 <keys_range> 		- Range of the total keys pool (keys will be generated randomly from 0 to keys_range)
+	2.6 <step/rando> 		- If set is initialized first, choose step size. For exampe step size = 3 will insert every third key from all of the keys available in keys_range, resulting with an initial set of keys_range/3.
+																			 step_size = 0 - will insert all keys in keys range to the initial set, resulting with an initial set of keys_range.
+																			 
+Example for a run : leap_FG_lock_multi 8 60 30 1000 100000 0.
+					8 threads are run here. 60% of the operations will be lookup operations, 30# of the operations will be range query operations in the size of 1000 keys. 
+					keys will be generated randomly from 0 to 100000, starting with an initial set of 100000 keys already in the database.

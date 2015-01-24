@@ -161,7 +161,7 @@ static volatile int threads_initialised2 = 0;
 static volatile int threads_initialised3 = 0;
 int num_threads;
 
-static unsigned long look_prop, rq_prop, rq_size, full_prop, step_distribution;
+static unsigned long look_prop, rq_prop, rq_size, step_distribution;
 unsigned long keys_range, structure_size;
 
 static struct timeval start_time, done_time;
@@ -222,14 +222,11 @@ static void set_data_initialize()
     {
         for ( i = 0; i < keys_range; i++ )
         {
-            if((nrand(r)%100)<full_prop)
-            {
-				for (j=0 ; j < MAX_ROW ; j++ )
-				{
-					arrKeys[j] = i;
-				}
-                set_update(shared.set, arrKeys, arrVals, MAX_ROW);
-            }
+			for (j=0 ; j < MAX_ROW ; j++ )
+			{
+				arrKeys[j] = i;
+			}
+            set_update(shared.set, arrKeys, arrVals, MAX_ROW);
         }
     }
     else
@@ -277,6 +274,7 @@ static void *thread_start(void *arg)
 
     if ( id == 0 )
     {
+		// Do initializations once on first thread
         _init_ptst_subsystem();
         _init_gc_subsystem();
         _init_set_subsystem();
@@ -326,6 +324,7 @@ static void *thread_start(void *arg)
 			// lookup on first list.
             ov = v = set_lookup(shared.set[0], k);
         }
+		// Modify propotion will be split evenly between update and remove
 		else if (((r >> 12) & 1)){
 				v = (void *)((r&~7) | 0x8);
 
@@ -478,9 +477,9 @@ unsigned long log_header[3];
 
 int main (int argc, char **argv)
 {
-    if ( argc != 8 )
+    if ( argc != 7 )
     {
-        printf("USAGE: <num_threads> <look_proportion> <rq_proportion> <rq_size> <keys_range><full_proportion><step/rando:step 0 means random>\n");
+        printf("USAGE: <num_threads> <look_proportion> <rq_proportion> <rq_size> <keys_range> <step/rando:step 0 means random>\n");
         exit(1);
     }
 
@@ -502,13 +501,11 @@ int main (int argc, char **argv)
     log_float ("frac_updates", (float)(100-look_prop)/100);/* This is divided to insert / delete */
 
     keys_range = atoi(argv[5]);
-
-    full_prop = atoi(argv[6]);
   
-    step_distribution = atoi(argv[7]);
+    step_distribution = atoi(argv[6]);
     if(step_distribution == 0)
     {
-        structure_size = (keys_range * full_prop)/100;
+        structure_size = keys_range;
         log_string("distribution", "random");
     }
     else

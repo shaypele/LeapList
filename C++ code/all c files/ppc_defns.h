@@ -1,4 +1,4 @@
-#ifndef __PPC_DEFNS_H__
+fndef __PPC_DEFNS_H__
 #define __PPC_DEFNS_H__
 
 #ifndef PPC

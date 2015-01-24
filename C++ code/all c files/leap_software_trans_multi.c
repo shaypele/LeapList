@@ -23,20 +23,13 @@
 #define __SET_IMPLEMENTATION__
 
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
 #include <assert.h>
 #include "portable_defns.h"
 #include "gc.h"
 #include "stm.h"
-
 #include "set.h"
-#include <immintrin.h>
-//#include rtm.h
-
-
 
 #ifndef	USE_TRIE
 #define USE_TRIE
@@ -50,12 +43,9 @@
 
 #define ASSERT_GC(X) {if(X==0) exit(999);}
 #define make_marked_ptr(_p)   ((void *)((unsigned long)(_p) | 1))
-#define mark_abo(_p) if(is_marked_ref(_p)) _xabort (0xff);
-#define mark_abo_SW(_p) if(is_marked_ref(_p)) __transaction_cancel;
+#define mark_abo(_p) if(is_marked_ref(_p)) __transaction_cancel;
 #define UNMARK(X) X=get_unmarked_ref(X)
 #define MARK(X) X=make_marked_ptr(X)
-
-#define MAX_CAPACITY_ABORTS 10 //maximum number of capacity aborts allowed for a hardware transaction
 
 static int gc_id;
 typedef void set_t;
@@ -76,14 +66,7 @@ typedef struct node_t {
     volatile struct node_t volatile * next[MAX_LEVEL];  // Pointers.
 } node_t;
 
-
-
-/////////////// Transcation software fallback functions ///////////////////////
-
-setval_t set_rq_SW(set_t *l, setkey_t low, setkey_t high,ptst_t *ptst);
-setval_t set_remove_SW(set_t *l, setkey_t k, int j,ptst_t *ptst);
-setval_t set_update_SW(set_t *l, setkey_t k, setval_t v, int j,ptst_t *ptst);
-////////////////////////////////////////////////////////////////////////////// 
+// **************** TEST FUNCTIONS  **********************************
 
 static void print_node2(volatile node_t *n, char *prefix)
 {
@@ -113,8 +96,6 @@ static void print_node2(volatile node_t *n, char *prefix)
 
 static void print_set(set_t *l)
 {
-	printf("Print set place holder");
-	/*
     node_t *cur = l;
     printf("Set nodes:\n");
 
@@ -125,7 +106,7 @@ static void print_set(set_t *l)
         {
             cur = cur->next[0];
         }
-    }*/
+    }
 }
 
 static void print_node(node_t *n)
@@ -133,6 +114,7 @@ static void print_node(node_t *n)
     print_node2(n, "");
 }
 
+// **************************************************
 
 #ifdef	USE_TRIE
 static void init_node_trie(node_t * n)
@@ -168,20 +150,23 @@ static volatile node_t *search_predecessors(node_t *l, setkey_t k, volatile node
     volatile node_t  *x,  *x_next;
     int i;
     ptst_t *ptst;
+    unsigned long cnttt = 0;
 restart_look:
+
     {
         x = l;
-
+		// Go over all levels, top to bottom to find all predecessors and their successeors of the node that might contain key.
         for ( i = MAX_LEVEL - 1; i >= 0; i-- )
         {
             for ( ; ; )
             {
                 x_next = x->next[i];
+				// If pointer to next node is marked to be removed or next node isn't live anymore then restart search.
                 if (is_marked_ref(x_next) || (!x_next->live))
                 {
                     goto restart_look;
                 }
-
+				// Found upper bound, proceed to next level
                 if (x_next->high >= k) 
                 {
                     break;
@@ -191,6 +176,7 @@ restart_look:
                     x=x_next;
                 }
             }
+			// If pointer to this/next node is marked then restart search.
             if (is_marked_ref(x) || is_marked_ref(x_next))
                 goto restart_look;
             if ( pa ) pa[i] = x;
@@ -218,6 +204,10 @@ static void deallocate_node(node_t *n, ptst_t *ptst)
  * PUBLIC FUNCTIONS
  */
 
+/*
+ * Allocate an empty set of lists. Returns a pointer to the database containing the lists.
+ * The database that will contain MAX_ROW lists.
+ */
 set_t **set_alloc(void)
 {
     ptst_t  *ptst;
@@ -229,6 +219,12 @@ set_t **set_alloc(void)
     {
         l           = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(l);
+
+		// Initialize each list with 2 nodes , first is the sentinel that will contain no elements , second is a node that will be associated with all keys range. 
+		// When the node reach its maximal size it will split into to two new nodes.
+
+		// 'l' the second node, 'leap' the first sentinel one.
+		
         l->low      = SENTINEL_KEYMIN;
         l->high     = SENTINEL_KEYMAX;
         l->count    = 0;
@@ -260,9 +256,12 @@ set_t **set_alloc(void)
         db[j] = (set_t *) leap;
     }
     critical_exit(ptst);
+
+	//Returns a pointer to the set of lists.
     return db;
 }
 
+// Gets a node and a key, returns the value of the associated key if found in node 'n', 0 otherwise.
 setval_t find(volatile node_t *n, setkey_t k)
 {
     int i;
@@ -270,6 +269,7 @@ setval_t find(volatile node_t *n, setkey_t k)
     if(n)
     {
 #ifdef	USE_TRIE
+		//When using Trie call the "trie_find_val" function
         if (n->count > 0)
         {
             trie_val_t res = trie_find_val(&n->trie, k);
@@ -280,6 +280,7 @@ setval_t find(volatile node_t *n, setkey_t k)
 
         }
 #else	/* !USE_TRIE */
+		// If Trie isn't used, go over all elements in the data array of n in order to find the given key.
         for(i=0; i<n->count; i++)
         {
             if(n->data[i].key == k)
@@ -291,12 +292,17 @@ setval_t find(volatile node_t *n, setkey_t k)
     return 0;
 }
 
+// called by set_remove.
+// Gets an array of old_node (contains 2 in case there's a merge) , node n to set the new key-value pairs to, key 'k' to remove, 'merge' - 1 to merge/0 not to merge,
+// ptst - per thread state managment, used for memory handling.
 
-int removeAct(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst_t *ptst)
+// Return 1 if given key was found and removed, 0 otherwise.
+int remove(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst_t *ptst)
 {
     int i,j;
     int changed = 0;
 
+	// copy all key-value pairs of old node to new one except the one associated with the given key 'k'
     for (i=0,j=0; j<old_node[0]->count; j++)
     {
         if(old_node[0]->data[j].key != k)
@@ -311,6 +317,8 @@ int removeAct(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst
             n->count--;
         }
     }
+
+	// If node is merged, copy all keys from old_node[1] to node n as well.
     if(merge)
     {
         for (j=0; j<old_node[1]->count; j++)
@@ -321,17 +329,29 @@ int removeAct(volatile node_t **old_node, node_t *n, setkey_t k, int merge, ptst
         }
     }
 #ifdef	USE_TRIE
+	// If trie is used, build a trie to allow quick access to the key's index in the data array.
     trie_create_from_array(&n->trie, n->data, n->count, ptst);
 #endif	/* USE_TRIE */
     return changed;
 }
 
+// called by set_update.
+
+// Gets an array of new_node (contains 2 in case there's a split) to set the new values in , node n to take the old key-value pairs from, key 'k' & value 'v' to insert/update,
+// 'split' - 1 to split/0 not to split,
+// ptst - per thread state managment, used for memory handling.
+
+// Return 1 if key-value pair was added/updated , 0 otherwise.
 int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int split, ptst_t *ptst)
 {
     int i=0, j=0, changed = 0, m = 0;
 
     static int cnt = 0;
 
+	// If there's a split, put NODE_SIZE/2 elements in one node and the rest in the other.
+	// The 2 new nodes are now associated with the key range that was assoicated with one node 'n'
+
+	// Otherwise, copy old 'n' properties to the new node
     if(split)
     {
         new_node[0]->low   = n->low;
@@ -346,6 +366,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
         new_node[0]->count = n->count;
     }    
 
+	// Add/update the given key-value pair (k,vk),also  add all elements from node 'n' to the new set of nodes (divide between 2 node if there's a split )
     if(n->count==0)
     {
         new_node[m]->data[0].key   = k;
@@ -359,8 +380,10 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
     }
     else
     {
-        for(i=0, j=0; j<n->count; i++,j++)
+       for(i=0, j=0; j<n->count; i++,j++)
         {
+			// If key was found in old node update it's value and assign it to the new node.
+			//Otherwise , add it like a normal key-value pair from node 'n'
             if(n->data[j].key == k)
             {
 				new_node[m]->data[i].key = n->data[j].key;
@@ -369,7 +392,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
             }
 			else
 			{
-
+				// Data is a sorted array therefore if next element has a bigger key then the given key 'k', that's is the place to put the given key-value pair into.
 	            if((!changed) && (n->data[j].key > k))
 	            {
 	                new_node[m]->data[i].key = k;
@@ -377,6 +400,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
 	                new_node[m]->count++;
 	                changed = 1;
 
+					// Move to next node if split == 1 and new_node has reached it's assigned capcity 					
 	                if((!m) && split && (new_node[0]->count == (i+1)))
 	                {
 	                    new_node[m]->high =  new_node[m+1]->low = new_node[m]->data[i].key;
@@ -386,9 +410,13 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
 
 	                i++;
 	            }
+
+				//Copy elemetns from old node 'n' to the new node.
 	            new_node[m]->data[i].key = n->data[j].key;
 	            new_node[m]->data[i].value = n->data[j].value;
 			}
+
+			// Move to next node if split == 1 and new_node has reached it's assigned capcity 
             if((!m) && split && (new_node[0]->count == (i+1)))
             {
                 new_node[m]->high =  new_node[m+1]->low = new_node[m]->data[i].key;
@@ -398,6 +426,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
 
         }
 
+		// In case the given key-value pair should be inserted in the end of the array, insert it here.
         if(!changed)
         {
             new_node[m]->count++;
@@ -413,7 +442,7 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
             trie_create_from_array(&new_node[0]->trie, new_node[0]->data, new_node[0]->count, ptst);
             trie_create_from_array(&new_node[1]->trie, new_node[1]->data, new_node[1]->count, ptst);
         }
-        else //if (new_val)
+        else 
         {
             /* build the trie for the new node */
             trie_create_from_array(&new_node[m]->trie, new_node[m]->data, new_node[m]->count, ptst);
@@ -424,20 +453,24 @@ int insert(node_t **new_node,  volatile node_t *n, setkey_t k, setval_t v, int s
     return changed;
 }
 
+/*
+ * Add/Update mapping (@k[i] -> @v[i]) into list @l[i], where  0<= i < size . 
+ * @Size - number of elements in the given arrays 
+ */
 void set_update(set_t **l, setkey_t *k, setval_t *v, int size)
 {
+	// ptst - per thread state managment, used for memory handling.
     ptst_t   *ptst;
+	// Preds, succs - two dimensional array, each pred[i]/succ[i] is filled by search_predeccessors
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
-    int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW],status = 89;
+    int j, i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
     unsigned long max_height[MAX_ROW];
     node_t *new_node[MAX_ROW][2];
-	// counter which countes how many times the hardware transaction failed due to capcity abort. 
-	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
-	int tranCapFailCounter = 0;
-	
+
     ptst = critical_enter();
 
-    for(j = 0; j<size; j++)
+	// Init and allocate memory for new nodes for all lists in l
+    for(j = 0; j<size ; j++)
     {
         new_node[j][0] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(new_node[j][0]);
@@ -445,22 +478,27 @@ void set_update(set_t **l, setkey_t *k, setval_t *v, int size)
         ASSERT_GC(new_node[j][1]);
         new_node[j][0]->live = 0;
         new_node[j][1]->live = 0;
-
-		tranCapFailCounter = 0;
-    
+    }
 retry_update:
+	// Go over all lists in l, decide on their levels and if split is required or not.
+    for(j = 0; j<size; j++)
+    {
 
-   
-
+	// Initialize a new node trie to be associated with the new nodes.
 #ifdef	USE_TRIE
         init_node_trie(new_node[j][0]);
         init_node_trie(new_node[j][1]);
 #endif	/* USE_TRIE */
 
+		// Get the predeccsors (in all of the levels ) of the node that k[j] should be added to into preds[j], get the successors of preds[j] into succs[j].
+		// The successor of the predecessors in the bottom level is the node to be removed and replaces by the new node (or 2 new nodes is split is required), this node is returned
+		//	into n[j].
         n[j] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
+		// If the node to be removed has reached its maximum size, it should be splitted into 2 new nodes.Otherwise only one node will replace it.
         if(n[j]->count == NODE_SIZE)
         {
             split[j] = 1; 
+			// When splitting, one node will have the same level as the old node, and the other will get a random level ( With drop-off rate of 0.5 per level.)
             new_node[j][1]->level = n[j]->level;
             new_node[j][0]->level = get_level(ptst);
             max_height[j] = (new_node[j][0]->level > new_node[j][1]->level) ? new_node[j][0]->level : new_node[j][1]->level;
@@ -472,140 +510,124 @@ retry_update:
             max_height[j] = new_node[j][0]->level;
         }
 
+		// Copy values of the old node to the new node ( or 2 if splitted ).
         changed[j] = insert(new_node[j], n[j], k[j] + SENTINEL_DIFF, v[j], split[j], ptst);
 
+    }
 
+	// Start a software transaction. 
+	// Only this set of commands is surrounded by a transaction scope since the other operations are done on the new node
+	// which isn't a part of the data strucure yet , so no thread would access it anyway.
+	// Later on, when linking the new node, it will still be marked as not live while linking, therefore other operations will retry accessing it until it's full linked and live.
 
-   status = _xbegin()  ;
-    if ( status == _XBEGIN_STARTED )
+	// If any part of the transcation fails or aborted, all the operations untill that point will be reverted 
+	// At this point the code will go back to retry_update to try and update all the lists again.
+    __transaction_atomic 
     { 
-        
+		// Go over all lists and make sure all predeccessors 'next' pointers still point to the excpected nodes. 
+		// Meaning, point to n[j] until n[j]->level and point to succs[j][i] at higher levels.
+		// If n[j] or any of the predeccessors or successors are not live any more, abort the transcation.
+		// After the verification level is passed, mark all 'next' pointers of n[j] and 'next' pointer of the predeccessors.
+		// If any of the pointers is alreay marked, abort the transcation .
+		// Set n[j] as not live at the end of the transacation.
+        for(j = 0; j<size; j++)
+        {
             if (n[j]->live == 0)
-            { 
-		            _xabort (5);
-					goto fail_path;
-            }
+                __transaction_cancel;
 
             for(i = 0; i < n[j]->level; i++)
             {   
-                if(preds[j][i]->next[i] != n[j])
-				{ 
-			        _xabort (5);
-					goto fail_path;
-            	}	
-                if(n[j]->next[i]) if(!n[j]->next[i]->live)
-				{ 
-			        _xabort (5);
-					goto fail_path;
-            	}
+                if(preds[j][i]->next[i] != n[j]) __transaction_cancel;
+				// If the node that is pointed by n[j] isn't live any more, abort the transcation.
+                if(n[j]->next[i]) if(!n[j]->next[i]->live) __transaction_cancel;
             }
 
             for(i = 0; i < max_height[j]; i++)
             {   
-                if(preds[j][i]->next[i] != succs[j][i])
-				{ 
-		            _xabort (5);
-					goto fail_path;
-            	}
-                if(!(preds[j][i]->live)) 
-				{ 
-		            _xabort (5);
-					goto fail_path;
-            	}
-                if(!(succs[j][i]->live))
-				{
- 
-		            _xabort (5);
-					goto fail_path;
-            	}
+				// If the linkage is not linked as expected anymore or any of the preds or succs isn't live anymore, abort the transcation.
+                if(preds[j][i]->next[i] != succs[j][i]) __transaction_cancel;
+                if(!(preds[j][i]->live)) __transaction_cancel;
+                if(!(succs[j][i]->live)) __transaction_cancel;
             }
 
 
 
-            if(changed[j]) // lock
+            if(changed[j])
             {
                 for(i = 0; i < n[j]->level; i++)
                 {
                     if (n[j]->next[i] != NULL)
                     {
-					   if(is_marked_ref(n[j]->next[i]))
-					   {
-			              	_xabort (5);
-							goto fail_path;
-                        }
-			 
+						// If already marked, abort transacation.
+                        mark_abo(n[j]->next[i]);
                         MARK(n[j]->next[i]);
                     }
                 }                        
 
                 for(i = 0; i < max_height[j]; i++)
                 {
-			       if(is_marked_ref(preds[j][i]->next[i]))
-				   {					
-			            _xabort (5);
-					
-						goto fail_path;
-	               }
-                   MARK(preds[j][i]->next[i]);
+					// If already marked, abort transacation.
+                    mark_abo(preds[j][i]->next[i]);
+                    MARK(preds[j][i]->next[i]);
                 }
 
                 n[j]->live = 0;
-          }
-		  if (_xtest())
-		  {
-			_xend();
-		  }
+            }
+
+
+        }
+
+		//Mark transcation as successful.
+        indicator = 1;
+
     }
-    else// else, transaction failed.
+    if(!indicator)
     {
-		if  ( status == _XABORT_CAPACITY )
-		{
-			// increment capacity abort counter
-			tranCapFailCounter	++; 
-		}
-			
-		fail_path:
-		#ifdef	USE_TRIE
-		            /* deallocate the tries */
-		            trie_destroy(&new_node[j][0]->trie, ptst);
-		            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-		#endif	/* USE_TRIE */
-
-		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
-		{
-			// fallback to software transcation.
-			set_update_SW(l[j], k[j]  + SENTINEL_DIFF, v[j], j,ptst);
-			// continue to next value.
-			goto deallocate_update;
-		}
-		else
-		{
-		   goto retry_update;
-		}
+		// If transcation failed, deallocte the allocated tries and restart.
+        for(j = 0; j<size; j++)
+        {
+#ifdef	USE_TRIE
+            /* deallocate the tries */
+            trie_destroy(&new_node[j][0]->trie, ptst);
+            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
+#endif	/* USE_TRIE */
+        }
+        goto retry_update;
     }
 
-
-   
+	// For each list in l. Link the pointers of the new nodes to point to the successors in succs. Also, re-link the predeccessors pointers to point to the new nodes assigned.
+	// After that the new nodes are accessible, they are part of the lists, therefore they are set to be live.
+    for(j = 0; j<size; j++)
+    {
         if(changed[j]) // unlock
         {
-            // Make the correct linking of the new nodes
+            // First point the next pointers of all level in the new node ( or 2 if there's a split)  to the assoicated successors in succs.
             if (split[j])
             {   
+
+				// If there is a split, distinguish between two case: one where new_node[j][1]->level > new_node[j][0]->level and the opposite.
                 if (new_node[j][1]->level > new_node[j][0]->level)
                 {   
+					//  Since new_node[j][1]->level = n[j]->level and new_node[j][1]->level > new_node[j][0]->level, point all 'next' pointers in new_node[j][0] to new_node[j][1],
+					//  Next, copy all 'next' pointers from n[j] to new_node[j][1] (since they share the same maximum level)
                     for (i = 0; i < new_node[j][0]->level; i++)
                     {
                         new_node[j][0]->next[i] = new_node[j][1];
+						// unmark pointer
                         new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
                     }
                     for (; i < new_node[j][1]->level; i++)
+						// unmark pointer
                         new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
                 }
                 else
                 {   
+					// In this case only point part of new_node[j][0] 'next' pointers to new_node[j][1]. The others should point to succs[j][i] , where i represents the higher levels.
+					// This is because new_node[j][0] max level is bigger the original's node n[j]'s max level.
                     for (i = 0; i < new_node[j][1]->level; i++)
                     {
                         new_node[j][0]->next[i] = new_node[j][1];
+						// unmark pointer
                         new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
                     }
                     for (; i < new_node[j][0]->level; i++)
@@ -614,95 +636,108 @@ retry_update:
             }
             else
             {
+				// If no split occuredm, simply copy all 'next' pointers from n[j] to new_node[j][0].
                 for (i = 0; i < new_node[j][0]->level; i++)
                 {
+					// unmark pointer
                     new_node[j][0]->next[i] = get_unmarked_ref(n[j]->next[i]);
                 }
             }
 
-            // Unlock the predecessors to the new nodes
+            // Link the predecessors 'next' pointers of the node n[j] to the new node ( or 2 if there's a split )
             for(i=0; i < new_node[j][0]->level; i++)
             {
                 preds[j][i]->next[i] = new_node[j][0];
             }
+
+			// If there's a split and new_node[j][1]->level > new_node[j][0]->level , Link the predecessors 'next' pointers of the node n[j] to new node[j][1]
             if (split[j] && (new_node[j][1]->level > new_node[j][0]->level))
                 for(; i < new_node[j][1]->level; i++)
                 {
                     preds[j][i]->next[i] = new_node[j][1];
                 }
 
+			// Linking completed, mark the new nodes as live.
             new_node[j][0]->live = 1;
             if (split[j])
                 new_node[j][1]->live = 1;
-        
+        }
 
-	}
 
-	deallocate_update:
-    if(changed[j])
-    {
-        deallocate_node(n[j], ptst);
-        if (!split[j]) deallocate_node(new_node[j][1], ptst);
-    }
-    else
-    {
-        deallocate_node(new_node[j][0], ptst);
-        deallocate_node(new_node[j][1], ptst);
-    }    
+		// Deallocate unused nodes 
+        if(changed[j])
+        {
+            deallocate_node(n[j], ptst);
+            if (!split[j]) deallocate_node(new_node[j][1], ptst);
+        }
+        else
+        {
+            deallocate_node(new_node[j][0], ptst);
+            deallocate_node(new_node[j][1], ptst);
+        }    
 
-    
     }
     critical_exit(ptst);
 }
 
 
-
+/*
+ * Remove mapping for key @k[i] from set @l[i], where  0<= i < size.
+ * @Size - number of elements in the given arrays 
+ */
 void set_remove(set_t **l, setkey_t *k, int size)
 {
     ptst_t *ptst;
+	// Preds, succs - two dimensional array, each pred[i]/succ[i] is filled by search_predeccessors
     volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
     int i, j, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
-    int indicator2 = 0,status;
+    int indicator2 = 0;
     node_t *n[MAX_ROW];
-	// counter which countes how many times the hardware transaction failed due to capcity abort. 
-	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
-	int tranCapFailCounter = 0;
 
     ptst = critical_enter();
+	// Init and allocate memory for new nodes for all lists in l
     for(j=0; j<size; j++)
     {
-		tranCapFailCounter = 0;
-		
         n[j] = (node_t *) gc_alloc(ptst, gc_id);
         ASSERT_GC(n[j]);
-    
+    }
 retry_remove:
-    
+    for(j=0; j<size; j++)
+    {
 #ifdef	USE_TRIE
         init_node_trie(n[j]);
 #endif	/* USE_TRIE */
-    
+    }
 
+	// Go over all lists in l, if the associated key isn't present no remove is required so set changed[j] to 0 and continue to the next list.
+	// Also, decide on their levels and if merge is required or not.
+    for(j=0; j<size; j++)
+    {
 retry_last_remove:
         merge[j] = 0;
+
+		// Get the predeccsors (in all of the levels ) of the node that k[j] should be added to into preds[j], get the successors of preds[j] into succs[j].
+		// The successor of the predecessors in the bottom level is the node to be removed and replaces by the new node, this node is returned
+		//	into old_node[j].
         old_node[j][0] = search_predecessors(l[j], k[j] + SENTINEL_DIFF, preds[j], succs[j]);
 
         /* If the key is not present, just return */
         if (find(old_node[j][0], k[j] + SENTINEL_DIFF) == 0)
         {
             changed[j] = 0;
-			deallocate_node(n[j], ptst);
             continue;
         }
 
+		// Get the next node of old_node[j][0] in order to decide later on if merge is needed or not.
         do
         {
             old_node[j][1] = old_node[j][0]->next[0];
+			// if old_node[j][0] isn't live anymore, find the old_node that contains the key again - goto retry_last_remove.
             if (!old_node[j][0]->live)
                 goto retry_last_remove;
-        //} while ((old_node[j][0]->live) && (is_marked_ref(old_node[j][1])));
         } while (is_marked_ref(old_node[j][1]));
 
+		// if old_node[j][0] isn't live anymore, find the old_node that contains the key again - goto retry_last_remove.
         if (!old_node[j][0]->live)
             goto retry_last_remove;
 
@@ -712,19 +747,24 @@ retry_last_remove:
         {
             total[j] = total[j] + old_node[j][1]->count;
 
+		// if any of the nodes old_node[j][0] or old_node[j][1] isn't live anymore, find the old_node that contains the k again - goto retry_last_remove.
             if (!old_node[j][0]->live || !old_node[j][1]->live)
                 goto retry_last_remove;
 
+			// if(total[j] <= NODE_SIZE) a merge is required, so the two nodes will become one new node.
             if(total[j] <= NODE_SIZE)
             {
                 merge[j] = 1; 
             }
         }
+
+		// Copy the old_node's properties to the new one.
         n[j]->level = old_node[j][0]->level;    
         n[j]->low   = old_node[j][0]->low;
         n[j]->count = old_node[j][0]->count;
         n[j]->live = 0;
 
+		// If a merge is required, update the new node's properties. Get the maximum level between both of the old nodes and increase the number of elements and maximum expected key in the new node.
         if(merge[j])
         {
             if (old_node[j][1]->level > n[j]->level)
@@ -739,31 +779,52 @@ retry_last_remove:
             n[j]->high = old_node[j][0]->high;
         }
 
+		// If the old nodes ( might be old_node[j][1] in case there's a merge ) isn't live any more retry the remove.
         if (!old_node[j][0]->live)
             goto retry_last_remove;
 
         if (merge[j] && !old_node[j][1]->live)
             goto retry_last_remove;
 
-        changed[j] = removeAct(old_node[j], n[j], k[j] + SENTINEL_DIFF,  merge[j], ptst);
+		// Call remove in order to copy all key-value pairs from the old node ( or 2 nodes if merge is required ) without the key to be removed.
+        changed[j] = remove(old_node[j], n[j], k[j] + SENTINEL_DIFF, merge[j], ptst);
 
-    
-	status = _xbegin();
-    if ( status  == _XBEGIN_STARTED )
+    }
+
+
+
+
+	// Start a software transaction. 
+	// Only this set of commands is surrounded by a transaction scope since the other operations are done on the new node
+	// which isn't a part of the data strucure yet , so no thread would access it anyway.
+	// Later on, when linking the new node, it will still be marked as not live while linking, therefore other operations will retry accessing it until it's full linked and live.
+
+	// If any part of the transcation fails or aborted, all the operations untill that point will be reverted 
+	// At this point the code will go back to retry_remove to try and remove keys from all the lists again.
+    __transaction_atomic 
     {
+		// Go over all lists and make sure all predeccessors 'next' pointers still point to the excpected nodes. 
+		// If old_node[j][0] or old_node[j][1] ( if there's a merge ) or any of the predeccessors or successors are not live any more, abort the transcation.
+		// After the verification level is passed, mark all 'next' pointers of old_node[j][0] ( and old_node[j][1] if there's a merge) and 'next' pointer of the predeccessors.
+		// If any of the pointers is alreay marked, abort the transcation .
+		// Set old_node[j][0] ( and old_node[j][1] if there's a merge ) as not live at the end of the transacation.
+
+		
+        for(j=0; j<size; j++)
+        {
             if(changed[j])
             {
                 if (!old_node[j][0]->live)
-                    _xabort (5);
+                    __transaction_cancel;
 
                 if (merge[j] && !old_node[j][1]->live)
-                    _xabort (5);
+                    __transaction_cancel;
 
                 for(i = 0; i < old_node[j][0]->level;i++)
                 {
-                    if (preds[j][i]->next[i] != old_node[j][0])  _xabort (5);
-                    if (!(preds[j][i]->live))  _xabort (5);
-                    if (old_node[j][0]->next[i]) if (!old_node[j][0]->next[i]->live) _xabort (5);
+                    if (preds[j][i]->next[i] != old_node[j][0])  __transaction_cancel;
+                    if (!(preds[j][i]->live))  __transaction_cancel;
+                    if (old_node[j][0]->next[i]) if (!old_node[j][0]->next[i]->live) __transaction_cancel;
                 }
 
 
@@ -771,21 +832,21 @@ retry_last_remove:
                 {   
                     // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
                     if (old_node[j][0]->next[0] != old_node[j][1])
-                        _xabort (5);
+                        __transaction_cancel;
 
                     if (old_node[j][1]->level > old_node[j][0]->level)
                     {   
                         // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
                         for (i = 0; i < old_node[j][0]->level; i++)
                         {
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  _xabort (5);
+                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
                         }
                         // For the higher part, we need to check also the preds of that part
                         for (; i < old_node[j][1]->level; i++)
                         {
-                            if (preds[j][i]->next[i] != old_node[j][1])  _xabort (5);
-                            if (!(preds[j][i]->live))  _xabort (5);
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live) _xabort (5);
+                            if (preds[j][i]->next[i] != old_node[j][1])  __transaction_cancel;
+                            if (!(preds[j][i]->live))  __transaction_cancel;
+                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live) __transaction_cancel;
                         }
 
                     }
@@ -793,12 +854,12 @@ retry_last_remove:
                     {
                         for (i = 0; i < old_node[j][1]->level; i++)
                         {
-                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  _xabort (5);
+                            if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
                         }
                     }
                 }
 
-                // Lock the pointers to the next nodes
+                // Mark the pointers to the next nodes
                 if(merge[j])
                 {
                     for(i = 0; i < old_node[j][1]->level; i++)
@@ -806,6 +867,7 @@ retry_last_remove:
                         if (old_node[j][1]->next[i] != NULL)
                         {   
                             mark_abo(old_node[j][1]->next[i]);
+							// unmark pointer
                             MARK(old_node[j][1]->next[i]);
                         }
                     }
@@ -814,6 +876,7 @@ retry_last_remove:
                         if (old_node[j][0]->next[i] != NULL)
                         {   
                             mark_abo(old_node[j][0]->next[i]);
+							// unmark pointer
                             MARK(old_node[j][0]->next[i]);
                         }
                     }
@@ -825,15 +888,17 @@ retry_last_remove:
                         if (old_node[j][0]->next[i] != NULL)
                         {   
                             mark_abo(old_node[j][0]->next[i]);
+							// unmark pointer
                             MARK(old_node[j][0]->next[i]);
                         }
                     }
                 }
 
-                // Lock the pointers to the current node
+                // Mark the pointers to the current node
                 for(i = 0; i < n[j]->level; i++)
                 {
                     mark_abo(preds[j][i]->next[i]);
+					// unmark pointer
                     MARK(preds[j][i]->next[i]);
                 }
 
@@ -841,75 +906,70 @@ retry_last_remove:
                 if (merge[j])
                     old_node[j][1]->live = 0;      
             }
-		if (_xtest())
-		{
-			_xend();
-		}
-        //indicator = 1;
-    }
-    else
-    {
-
-		if  ( status == _XABORT_CAPACITY )
-		{
-			// increment capacity abort counter
-			tranCapFailCounter	++; 
-		}
-			
-		#ifdef	USE_TRIE
-	            trie_destroy(&n[j]->trie, ptst);
-		#endif	/* USE_TRIE */
-			
-		
-		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
-		{
-			// fallback to software transcation.
-			set_remove_SW(l[j], k[j]  + SENTINEL_DIFF, j,ptst);
-			// continue to next value.
-			goto deallocate_remove;
-		}
-        else
-        {
-			goto retry_remove;
         }
-        
 
+		//Mark transcation as successful.
+        indicator = 1;
     }
 
-    
+    if(!indicator)
+    {
+		// If transcation failed, deallocte the allocated tries and restart.
+        for(j=0; j<size; j++)
+        {
+#ifdef	USE_TRIE
+            trie_destroy(&n[j]->trie, ptst);
+#endif	/* USE_TRIE */
+        }
+        goto retry_remove;
+    }
+
+
+	// For each list in l. Link the pointers of the new nodes to point to the successors in succs. Also, re-link the predeccessors pointers to point to the new nodes assigned.
+	// After that the new nodes are accessible, they are part of the lists, therefore they are set to be live.
+    for(j=0; j<size; j++)
+    {
+		// update links only if the removal was actually needed
         if(changed[j])
         {
 
             // Update the next pointers of the new node
             i = 0;
+
+			// If a merge is required, get the 'next' pointers from old_node[j][1] into the new node 'n'. Later on if old_node[j][0] has a higher max level than old_node[j][1], node 'n' will get the 'next' pointers from it.
+			// If no merge is required, copy all next pointers from old_node[j][0] into the new node 'n'.  
             if (merge[j])
             {   
                 for (; i < old_node[j][1]->level; i++)
+					// unmark pointer
                     n[j]->next[i] = get_unmarked_ref(old_node[j][1]->next[i]);
             }
             for (; i < old_node[j][0]->level; i++)
+				// unmark pointer
                 n[j]->next[i] = get_unmarked_ref(old_node[j][0]->next[i]);
 
+			// n[j]-> level is the max level between old_node[j][0] and old_node[j][1] ( in case of a merge ), so the merge case is covered here as well.
+            // Link the predecessors 'next' pointers of old_node[0] ( in case there's a merge and old_node[1]->level > old_node[0]->level old_node[1]'s preds will point to n[j] as well )
+            //														to the new node n[j]. 
             for(i = 0; i < n[j]->level; i++)
             {   
                 preds[j][i]->next[i] = n[j];
             }
 
+			// Node is fully linked to the list, set it as live.
             n[j]->live = 1;
 
-            
-        }
 
-		deallocate_remove:
-		if(changed[j])
-        {
-			if(merge[j])
+			// Deallocate unused nodes.
+            if(merge[j])
                 deallocate_node(old_node[j][1], ptst);
 
             deallocate_node(old_node[j][0], ptst);
-		}
-		else
+        }
+
+        else
         {
+			// No change is needed - deallocate new assigned node.
             deallocate_node(n[j], ptst);
         }    
     }
@@ -918,7 +978,9 @@ retry_last_remove:
 }
 
 
-
+/*
+ * Look up mapping for key @k in list @l. Return value if found, else NULL.
+ */
 setval_t set_lookup(set_t *l, setkey_t k)
 {
     volatile node_t *n;
@@ -926,13 +988,14 @@ setval_t set_lookup(set_t *l, setkey_t k)
     ptst_t *ptst;
     setval_t v;
 
-    k=k+2; // Avoid sentinel
+    k=k+ SENTINEL_DIFF; // Avoid sentinel
 
     ptst = critical_enter();
 
-retry_lookup:
+	// Used here just to locate the node that k is supposed to be in.
     n = search_predecessors(l, k, 0, 0);
 
+	// Call find to find the key k in node n. v is set to null if not found.
     v = find(n,k);
 
     critical_exit(ptst);
@@ -940,57 +1003,42 @@ retry_lookup:
     return v;
 }
 
+/*
+ * Traverse the list from low to high.
+ */
 setval_t set_rq(set_t *l, setkey_t low, setkey_t high)
 {
     volatile node_t *n;
-    int i, indicator = 0,status;
+    int i, indicator = 0;
     ptst_t *ptst;
 
-	// counter which countes how many times the hardware transaction failed due to capcity abort. 
-	//When MAX_CAPACITY_ABORTS is reached, fallback to software transactions.
-	int tranCapFailCounter = 0;
-
-    low = low+2; // Avoid sentinel
-    high = high+2;
+    low = low+ SENTINEL_DIFF; // Avoid sentinel
+    high = high+ SENTINEL_DIFF;
 
     ptst = critical_enter();
 
 retry_rq:
+	// Used here just to locate the node that low is supposed to be in.
     n = search_predecessors(l, low, 0, 0);
 
-	status = _xbegin();
-    if (  status == _XBEGIN_STARTED )
+	// Start a software transcation. The goal is to traverse on all nodes without any changes in the way in order to capture a correct snapshot of these set of nodes
+	// Therefore, if one of the nodes in the way is discovered as not live anymore, abort the transcation and restart the entire search.
+    __transaction_atomic 
     {
+		// Traverse the list from the node that could contain low to the last node that could contain high.
         while(high>n->high)
         {
             if (!n->live)
-                _xabort (5);
+                __transaction_cancel;
             n = get_unmarked_ref(n->next[0]);
         }
 
-		if (_xtest())
-		{
-			_xend();
-		}
+		// Mark transcation as successful .
+        indicator = 1;
     }
-	else
-	{
-
-		if  ( status == _XABORT_CAPACITY )
-		{
-			// increment capacity abort counter
-			tranCapFailCounter	++; 
-		}
-		if ( tranCapFailCounter	>= MAX_CAPACITY_ABORTS )
-		{
-			// fallback to software transcation.
-			set_rq_SW(l, low, high,ptst);
-		}
-		else
-		{
-        	goto retry_rq;
-		}
-	}
+	// On failure, restart search and traverse again.
+    if(!indicator)
+        goto retry_rq;
 
     critical_exit(ptst);
 
@@ -998,441 +1046,13 @@ retry_rq:
 
 
 }
+
+// Get a GC allocator ID from the GC and init the trie sub system.
 void _init_set_subsystem(void)
 {
     gc_id =     gc_add_allocator(sizeof(node_t));
 #ifdef	USE_TRIE
     _init_trie_subsystem();
 #endif	/* USE_TRIE */
-}
-
-
-
-
-
-/////////////// Transcation software fallback functions ///////////////////////
-
-
-
-
-// Gets lists(l) , key, value and j - list index to run update on
-setval_t set_update_SW(set_t *l, setkey_t k, setval_t v, int j,ptst_t   *ptst)
-{
-    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *n[MAX_ROW];
-    int i, indicator = 0, changed[MAX_ROW], split[MAX_ROW];
-    unsigned long max_height[MAX_ROW];
-    node_t *new_node[MAX_ROW][2];
-
-   
-    new_node[j][0] = (node_t *) gc_alloc(ptst, gc_id);
-    ASSERT_GC(new_node[j][0]);
-    new_node[j][1] = (node_t *) gc_alloc(ptst, gc_id);
-    ASSERT_GC(new_node[j][1]);
-    new_node[j][0]->live = 0;
-    new_node[j][1]->live = 0;
-   
-retry_update_SW:
-
-
-#ifdef	USE_TRIE
-        init_node_trie(new_node[j][0]);
-        init_node_trie(new_node[j][1]);
-#endif	/* USE_TRIE */
-
-        n[j] = search_predecessors(l, k, preds[j], succs[j]);
-        if(n[j]->count == NODE_SIZE)
-        {
-            split[j] = 1; 
-            new_node[j][1]->level = n[j]->level;
-            new_node[j][0]->level = get_level(ptst);
-            max_height[j] = (new_node[j][0]->level > new_node[j][1]->level) ? new_node[j][0]->level : new_node[j][1]->level;
-        }
-        else
-        {
-            split[j] = 0;
-            new_node[j][0]->level = n[j]->level; 
-            max_height[j] = new_node[j][0]->level;
-        }
-
-        changed[j] = insert(new_node[j], n[j], k, v, split[j], ptst);
-
-	
-
-    __transaction_atomic 
-    { 
-        
-            if (n[j]->live == 0)
-                __transaction_cancel;
-
-            for(i = 0; i < n[j]->level; i++)
-            {   
-                if(preds[j][i]->next[i] != n[j]) __transaction_cancel;
-                if(n[j]->next[i]) if(!n[j]->next[i]->live) __transaction_cancel;
-            }
-
-            for(i = 0; i < max_height[j]; i++)
-            {   
-                if(preds[j][i]->next[i] != succs[j][i]) __transaction_cancel;
-                if(!(preds[j][i]->live)) __transaction_cancel;
-                if(!(succs[j][i]->live)) __transaction_cancel;
-            }
-
-
-
-            if(changed[j]) // lock
-            {
-                for(i = 0; i < n[j]->level; i++)
-                {
-                    if (n[j]->next[i] != NULL)
-                    {
-                        mark_abo_SW(n[j]->next[i]);
-                        MARK(n[j]->next[i]);
-                    }
-                }                        
-
-                for(i = 0; i < max_height[j]; i++)
-                {
-                    mark_abo_SW(preds[j][i]->next[i]);
-                    MARK(preds[j][i]->next[i]);
-                }
-
-                n[j]->live = 0;
-            }
-
-
-        
-        indicator = 1;
-
-    }
-    if(!indicator)
-    {
-
-
-#ifdef	USE_TRIE
-            /* deallocate the tries */
-            trie_destroy(&new_node[j][0]->trie, ptst);
-            if (split[j]) trie_destroy(&new_node[j][1]->trie, ptst);
-#endif	/* USE_TRIE */
-
-        goto retry_update_SW;
-    }
-
-
-    if(changed[j]) // unlock
-    {
-        // Make the correct linking of the new nodes
-        if (split[j])
-        {   
-            if (new_node[j][1]->level > new_node[j][0]->level)
-            {   
-                for (i = 0; i < new_node[j][0]->level; i++)
-                {
-                    new_node[j][0]->next[i] = new_node[j][1];
-                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
-                }
-                for (; i < new_node[j][1]->level; i++)
-                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
-            }
-            else
-            {   
-                for (i = 0; i < new_node[j][1]->level; i++)
-                {
-                    new_node[j][0]->next[i] = new_node[j][1];
-                    new_node[j][1]->next[i] = get_unmarked_ref(n[j]->next[i]);
-                }
-                for (; i < new_node[j][0]->level; i++)
-                    new_node[j][0]->next[i] = succs[j][i];
-            }
-        }
-        else
-        {
-            for (i = 0; i < new_node[j][0]->level; i++)
-            {
-                new_node[j][0]->next[i] = get_unmarked_ref(n[j]->next[i]);
-            }
-        }
-
-        // Unlock the predecessors to the new nodes
-        for(i=0; i < new_node[j][0]->level; i++)
-        {
-            preds[j][i]->next[i] = new_node[j][0];
-        }
-        if (split[j] && (new_node[j][1]->level > new_node[j][0]->level))
-            for(; i < new_node[j][1]->level; i++)
-            {
-                preds[j][i]->next[i] = new_node[j][1];
-            }
-
-        new_node[j][0]->live = 1;
-        if (split[j])
-            new_node[j][1]->live = 1;
-    }
-
-
-    if(changed[j])
-    {
-        deallocate_node(n[j], ptst);
-        if (!split[j]) deallocate_node(new_node[j][1], ptst);
-    }
-    else
-    {
-        deallocate_node(new_node[j][0], ptst);
-        deallocate_node(new_node[j][1], ptst);
-    }    
-
-    return 0;
-}
-
-
-
-
-// Gets lists(l) , key and j - list index to run update on
-setval_t set_remove_SW(set_t *l, setkey_t k, int j,ptst_t *ptst)
-{
-    volatile node_t *preds[MAX_ROW][MAX_LEVEL], *succs[MAX_ROW][MAX_LEVEL], *old_node[MAX_ROW][2];
-    int i, total[MAX_ROW], indicator = 0, changed[MAX_ROW], merge[MAX_ROW];
-    int indicator2 = 0;
-    node_t *n[MAX_ROW];
-
-    n[j] = (node_t *) gc_alloc(ptst, gc_id);
-    ASSERT_GC(n[j]);
-retry_remove_SW:
-
-#ifdef	USE_TRIE
-        init_node_trie(n[j]);
-#endif	/* USE_TRIE */
-
-retry_last_remove_SW:
-        merge[j] = 0;
-        old_node[j][0] = search_predecessors(l, k, preds[j], succs[j]);
-
-        /* If the key is not present, just return */
-        if (find(old_node[j][0], k) == 0)
-        {
-            changed[j] = 0;
-			deallocate_node(n[j], ptst);
-		    return -1;
-        }
-
-        do
-        {
-            old_node[j][1] = old_node[j][0]->next[0];
-            if (!old_node[j][0]->live)
-                goto retry_last_remove_SW;
-        //} while ((old_node[j][0]->live) && (is_marked_ref(old_node[j][1])));
-        } while (is_marked_ref(old_node[j][1]));
-
-        if (!old_node[j][0]->live)
-            goto retry_last_remove_SW;
-
-        total[j] = old_node[j][0]->count;
-
-        if(old_node[j][1])
-        {
-            total[j] = total[j] + old_node[j][1]->count;
-
-            if (!old_node[j][0]->live || !old_node[j][1]->live)
-                goto retry_last_remove_SW;
-
-            if(total[j] <= NODE_SIZE)
-            {
-                merge[j] = 1; 
-            }
-        }
-        n[j]->level = old_node[j][0]->level;    
-        n[j]->low   = old_node[j][0]->low;
-        n[j]->count = old_node[j][0]->count;
-        n[j]->live = 0;
-
-        if(merge[j])
-        {
-            if (old_node[j][1]->level > n[j]->level)
-            {
-                n[j]->level = old_node[j][1]->level;
-            }
-            n[j]->count += old_node[j][1]->count;
-            n[j]->high = old_node[j][1]->high;
-        }
-        else
-        {
-            n[j]->high = old_node[j][0]->high;
-        }
-
-        if (!old_node[j][0]->live)
-            goto retry_last_remove_SW;
-
-        if (merge[j] && !old_node[j][1]->live)
-            goto retry_last_remove_SW;
-
-        changed[j] = removeAct(old_node[j], n[j], k, merge[j], ptst);
-
-    
-
-    __transaction_atomic 
-    {
-        if(changed[j])
-        {
-            if (!old_node[j][0]->live)
-                __transaction_cancel;
-
-            if (merge[j] && !old_node[j][1]->live)
-                __transaction_cancel;
-
-            for(i = 0; i < old_node[j][0]->level;i++)
-            {
-                if (preds[j][i]->next[i] != old_node[j][0])  __transaction_cancel;
-                if (!(preds[j][i]->live))  __transaction_cancel;
-                if (old_node[j][0]->next[i]) if (!old_node[j][0]->next[i]->live) __transaction_cancel;
-            }
-
-
-            if (merge[j])
-            {   
-                // Already checked that old_node[0]->next[0] is live, need to check if they are still connected
-                if (old_node[j][0]->next[0] != old_node[j][1])
-                    __transaction_cancel;
-
-                if (old_node[j][1]->level > old_node[j][0]->level)
-                {   
-                    // Up to old_node[0] height, we only need to validate the next nodes of old_node[1]
-                    for (i = 0; i < old_node[j][0]->level; i++)
-                    {
-                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
-                    }
-                    // For the higher part, we need to check also the preds of that part
-                    for (; i < old_node[j][1]->level; i++)
-                    {
-                        if (preds[j][i]->next[i] != old_node[j][1])  __transaction_cancel;
-                        if (!(preds[j][i]->live))  __transaction_cancel;
-                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live) __transaction_cancel;
-                    }
-
-                }
-                else // old_node[0] is higher than old_node[1], just check the next pointers of old_node[1]
-                {
-                    for (i = 0; i < old_node[j][1]->level; i++)
-                    {
-                        if (old_node[j][1]->next[i]) if (!old_node[j][1]->next[i]->live)  __transaction_cancel;
-                    }
-                }
-            }
-
-            // Lock the pointers to the next nodes
-            if(merge[j])
-            {
-                for(i = 0; i < old_node[j][1]->level; i++)
-                {
-                    if (old_node[j][1]->next[i] != NULL)
-                    {   
-                        mark_abo_SW(old_node[j][1]->next[i]);
-                        MARK(old_node[j][1]->next[i]);
-                    }
-                }
-                for(i = 0; i < old_node[j][0]->level; i++)
-                {
-                    if (old_node[j][0]->next[i] != NULL)
-                    {   
-                        mark_abo_SW(old_node[j][0]->next[i]);
-                        MARK(old_node[j][0]->next[i]);
-                    }
-                }
-            }
-            else
-            {   
-                for(i = 0; i < old_node[j][0]->level; i++)
-                {
-                    if (old_node[j][0]->next[i] != NULL)
-                    {   
-                        mark_abo_SW(old_node[j][0]->next[i]);
-                        MARK(old_node[j][0]->next[i]);
-                    }
-                }
-            }
-
-            // Lock the pointers to the current node
-            for(i = 0; i < n[j]->level; i++)
-            {
-                mark_abo_SW(preds[j][i]->next[i]);
-                MARK(preds[j][i]->next[i]);
-            }
-
-            old_node[j][0]->live = 0;      
-            if (merge[j])
-                old_node[j][1]->live = 0;      
-        }
-        indicator = 1;
-    }
-
-    if(!indicator)
-    {
-#ifdef	USE_TRIE
-            trie_destroy(&n[j]->trie, ptst);
-#endif	/* USE_TRIE */
-        goto retry_remove_SW;
-    }
-
-    if(changed[j])
-    {
-
-        // Update the next pointers of the new node
-        i = 0;
-        if (merge[j])
-        {   
-            for (; i < old_node[j][1]->level; i++)
-                n[j]->next[i] = get_unmarked_ref(old_node[j][1]->next[i]);
-        }
-        for (; i < old_node[j][0]->level; i++)
-            n[j]->next[i] = get_unmarked_ref(old_node[j][0]->next[i]);
-
-        for(i = 0; i < n[j]->level; i++)
-        {   
-            preds[j][i]->next[i] = n[j];
-        }
-
-        n[j]->live = 1;
-
-        if(merge[j])
-            deallocate_node(old_node[j][1], ptst);
-
-        deallocate_node(old_node[j][0], ptst);
-    }
-
-    else
-    {
-        deallocate_node(n[j], ptst);
-    }    
-
-
-    return 0;
-}
-
-
-setval_t set_rq_SW(set_t *l, setkey_t low, setkey_t high,ptst_t *ptst)
-{
-    volatile node_t *n;
-    int i, indicator = 0;
-
-
-retry_rq_SW:
-    n = search_predecessors(l, low, 0, 0);
-
-    __transaction_atomic 
-    {
-        while(high>n->high)
-        {
-            if (!n->live)
-                __transaction_cancel;
-            n = get_unmarked_ref(n->next[0]);
-        }
-        indicator = 1;
-    }
-    if(!indicator)
-        goto retry_rq_SW;
-
-
-
-    return 0;
-
-
 }
 

@@ -12,7 +12,7 @@ all: $(TARGETS)
 clean:
 	rm -f $(TARGETS) *~ core *.o *.a
 
-leap_hardware_trans_multi : leap_hardware_trans_multi.o set_harness.o ptst.o gc.o trie.o
+leap_hardware_trans_multi : leap_rtm_multi.o set_harness.o ptst.o gc.o trie.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 leap_global_lock_multi: leap_global_lock_multi.o set_harness.o ptst.o gc.o trie.o
