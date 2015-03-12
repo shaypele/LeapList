@@ -715,7 +715,7 @@ if (pthread_mutex_init(&new_node[j][1]->lock, NULL) != 0)
 	            }
 	            else
 	            {
-				// If no split occuredm, simply copy all 'next' pointers from n[j] to new_node[j][0].
+				// If no split occurred, simply copy all 'next' pointers from n[j] to new_node[j][0].
 	                for (i = 0; i < new_node[j][0]->level; i++)
 	                {
 	                    new_node[j][0]->next[i] = (n[j]->next[i]);
