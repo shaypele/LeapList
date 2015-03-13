@@ -10,8 +10,9 @@ public class Trie {
 	private TrieMetadata meta;
 	private TrieVal head;
 	
+	/* Creates a new trie with the given (key, value) pair */
 	private void createOneNodeTrie(long key, short value){
-		
+		/* Creates a trie with only leaves */
 		TrieVal val = new TrieVal(16, (short)0);
 		head = val;
 		
@@ -25,19 +26,24 @@ public class Trie {
 		createOneNodeTrie( key,  value);
 	}
 	
+
+/* Creates a new trie which is based on the given array.*/
 	public Trie (LeapSet[] data ,int size){
 		short counter = 1;
 		
+		//  if the array is empty. 
 		if ( size == 0 ){
 			createOneNodeTrie( 0, (short)  0);
 			return;
 		}
 		
 		this.meta = new TrieMetadata();
-		
+		/* First compute the prefix */
 		computeTriePrefix(data[0].key, data[size - 1].key);
 		
+		/* In case the trie has only leaves */
 		if (meta.prefix_length == 14){
+			/* The trie nedds to be with only 256 leaves */
 			this.head = new TrieVal(256, (short)0);
 			
 			for (int i = 0; i < size; i++){
@@ -48,6 +54,7 @@ public class Trie {
 		}
 		
 		else if (meta.prefix_length == 15){
+			/* The trie nedds to be with only 16 leaves */
 			this.head = new TrieVal (16, (short)0);
 			
 			for (int i = 0;i < size; i++){
@@ -58,13 +65,16 @@ public class Trie {
 		}
 		
 		else {
+			/* In case the trie has inner nodes */
 			if (this.meta.prefix_length % 2 == 0){
+				/* The trie needs to be with 256 inner node */
 				this.head = new TrieVal(256, (short)0);
 			}
 			else {
+				/* The trie needs to be with 16 inner node */
 				this.head = new TrieVal(16, (short)0);
 			}
-			
+			/* Add each key from the array (if the inner nodes are not there, create them - their size is 256) */
 			for (int i =0; i < size; i++){
 				int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 				int index;
@@ -76,9 +86,9 @@ public class Trie {
 				}
 				else{
 					index = (int) ((currKey >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK);
-					shiftDigits++;
+					shiftDigits++;/* make shift_digits an even number */
 				}
-				
+				/* Traverse the inner nodes in the trie */
 				while (shiftDigits > 2){
 					
 					if (curr.child[index].child == null){
@@ -91,6 +101,7 @@ public class Trie {
 					index = (int) ((currKey >> ((shiftDigits -2) <<2)) & LAST_2_DIGITS_MASK);
 				}
 				
+				/* Add the key-val to a leaf */
 				curr.child[index].val = counter;
 				counter++;
 			}
@@ -109,15 +120,16 @@ public class Trie {
 			}
 		}
 	}
-	
+	/* Finds a given key in the trie (returns -1 in case the key is not part of the trie) */
 	public short trieFindVal (long key){
 		int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 		int index;
 		TrieVal curr = head;
-		
+		/* If the trie is empty, return */
 		if (head == null)
 			return -1;
 		
+		/* Check the base case (if the key does not match the prefix) */
 		if ((key >> (shiftDigits << 2)) != meta.prefix)
 			return -1;
 		
@@ -126,9 +138,10 @@ public class Trie {
 		}
 		else{
 			index = (int) ((key >> ((shiftDigits - 1) << 2)) & LAST_DIGIT_MASK);
-			shiftDigits ++;
+			shiftDigits ++;/* make shift_digits an even number */
 		}
 		
+		/* Traverse the inner nodes in the trie */
 		while (shiftDigits > 2){
 			if (curr.child[index].child == null)
 				return -1;
@@ -137,6 +150,7 @@ public class Trie {
 			shiftDigits = shiftDigits - 2;
 			index = (int) ((key >> ((shiftDigits - 2) << 2)) & LAST_2_DIGITS_MASK);
 		}
+		/* Reached a leaf */
 		
 		if (curr.child[index].val == 0)
 			return -1;
@@ -161,6 +175,7 @@ public class Trie {
 	}
 	
 	public int trieNodesNum(){
+		/* If the trie is empty, return */
 		if (head == null)
 			return 0;
 		

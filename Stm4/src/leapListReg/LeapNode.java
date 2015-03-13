@@ -1,7 +1,19 @@
 package leapListReg;
 import utils.LeapSet;
 import utils.Trie;
-
+/*
+ * LeapNode class represent the node in the LeapList structure,
+ * each node has a volatile boolean live that is true if the node is in the list and false otherwise,
+ * volatile long low that represent the lowest key that can be in the node,
+ * volatile long high that represent the highest key that can be in the node,
+ * volatile int count that is the number of key value pairs in the node,
+ * volatile byte level that is the number of levels that the node has,
+ * LeapSet[] data for the key value pairs
+ * volatile boolean[] Marks - Marks[i] true if the node's pointer next[i] is set to be removed/change.
+ * LeapNode[] next that keeps the next node in each level,
+ * trie for finding the values in the node.
+ * we use volatile variables are been use for cache coherence and synchronization between multiple threads.
+ */
 
 
 public class LeapNode {
@@ -12,7 +24,6 @@ public class LeapNode {
 	volatile public long high;
 	volatile public int count;
 	volatile byte level;
-	volatile public boolean Marked ;
 	public LeapSet [] data = new LeapSet[LeapList.NODE_SIZE]; //the array must be sorted by keys so that LeapSet with the smallest key is at LeapSet[0] etc.
 	private LeapNode[] next =  new LeapNode [LeapList.MAX_LEVEL];
 	Trie trie;
@@ -38,18 +49,17 @@ public class LeapNode {
 		{
 			Marks[i]= false;
 		}	
-		this.Marked = false;
 		this.live = false;
 		for (int i = 0 ; i < LeapList.NODE_SIZE ; i ++)
 		{
 			data[i] = new LeapSet(0,0);
 		}
 	}
-	
+	//get the next node from the given level.
 	public LeapNode getNext (int i){
 		return next[i];
 	}
-	
+	//set the next node in the given level to the give node
 	public void setNext(int level, LeapNode node){
 		next[level] = node;
 	}

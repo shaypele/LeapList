@@ -6,6 +6,20 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import utils.LeapSet;
 import utils.Trie;
+/*
+ * LeapNode class represent the node in the LeapList structure,
+ * each node has a volatile boolean live that is true if the node is in the list and false otherwise,
+ * volatile long low that represent the lowest key that can be in the node,
+ * volatile long high that represent the highest key that can be in the node,
+ * volatile int count that is the number of key value pairs in the node,
+ * volatile byte level that is the number of levels that the node has,
+ * LeapSet[] data for the key value pairs
+ * volatile boolean Marked that represent if the node is set to be removed for lazy implementation.
+ * ArrayList<AtomicReference<LeapNode>> next that keeps the next node in each level,
+ * trie for finding the values in the node.
+ * we use volatile variables and atomicMarkedReference are been use for cache coherence and synchronization between multiple threads.
+ */
+
 
 public class LeapNode {
 	volatile boolean live = true;
@@ -17,7 +31,6 @@ public class LeapNode {
 	private ArrayList<AtomicReference<LeapNode>> next ;
 	Trie trie;
 	volatile public boolean Marked;
-	public int lastID = 0;
 	
 	public final ReentrantLock nodeLock = new ReentrantLock();
 	
@@ -48,31 +61,32 @@ public class LeapNode {
 		}
 	}
 	
+	//try to lock the node if succeed then hold the lock and return true else return false.
 	public boolean tryLock(){
 		return nodeLock.tryLock();
 	}
 	
+	//hold the node lock
 	public void lock(){
 		nodeLock.lock();
 	}
 	
+	//free the node lock
 	public void unlock(){
-		
-		//if (nodeLock.isHeldByCurrentThread())
 			nodeLock.unlock();
 	}
 	
+	//get the next node from the given level.
 	public LeapNode getNext (int i){
 		return next.get(i).get();
 	}
 	
+	//set the next node in the given level to the give node
 	public void setNext(int level, LeapNode node){
 		next.get(level).set(node);
 	}
 	
-	static long sum = 0;
-	static long counter = 0;
-	
+	// go over all elements in the data array of n in order to find the given key.
 	public short findIndex(long key){
 		short retInd = -1;
 		for (short i=0 ; i < LeapList.NODE_SIZE ; i++){

@@ -1,7 +1,17 @@
 package leapListReg;
-
 import utils.LeapSet;
 import utils.Trie;
+/*
+ * LeapNode class represent the node in the LeapList structure,
+ * each node has boolean live that is true if the node is in the list and false otherwise,
+ * long low that represent the lowest key that can be in the node,
+ * long high that represent the highest key that can be in the node,
+ * int count that is the number of key value pairs in the node,
+ * byte level that is the number of levels that the node has,
+ * LeapSet[] data for the key value pairs
+ * LeapNode[] next that keeps the next node in each level,
+ * trie for finding the values in the node.
+ */
 
 public class LeapNode {
 	boolean live = true;

@@ -1,7 +1,10 @@
 package leapListReg;
 
 import java.util.ArrayList;
-
+/*
+ * the LeapList class represent the list of nodes,
+ * it has LeapNode head that is the sentinel head node for the list.
+ */
 
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
@@ -31,10 +34,11 @@ public class LeapList {
 		LeapNode x, x_next = null;
 		
 		x = this.head;
-		
+		// Go over all levels, top to bottom to find all predecessors and their successors of the node that might contain key.
 		for (int i = MAX_LEVEL -1; i >= 0; i--) {
 			while (true){
 				x_next = x.next[i];
+				// Found upper bound, proceed to next level
 				if (x_next.high >= key)
 					break;
 				else
@@ -58,10 +62,12 @@ public class LeapList {
 		LeapNode [] na = new LeapNode[MAX_LEVEL];
 		LeapNode [] pa = new LeapNode[MAX_LEVEL];
 		key+= 2; // avoid sentinel 
+		// Used here just to locate the node that k is supposed to be in.
 		LeapNode ret = searchPredecessor( key, pa, na);
+		// Call trie.trieFindVal to find the key k index in the node. it return -1 if not found
 		index = ret.trie.trieFindVal(key);
 		if (index != -1)
-		{
+		{//if found get the value from the index
 			retVal =  ret.data[index].value;
 		}
 		return retVal;
@@ -75,9 +81,12 @@ public class LeapList {
 	    ArrayList<Object> rangeSet = new ArrayList<Object>(); 
 	    low = low+2; // Avoid sentinel
 	    high = high+2; // Avoid sentinel
-	
+	    
+		// Used here just to locate the node that low is supposed to be in.
 	    n = searchPredecessor( low, null, null);
 	    
+		// Traverse the list from the node that could contain low to the last node that could contain high.
+	    //and add all the values from the nodes in the range to the set.
 	    while (high>n.high)
 	    {
 	    	n = addValuesToSet(low, high, n, rangeSet);
@@ -85,6 +94,7 @@ public class LeapList {
 	    		n = n.next[0];
 	    	}
 	    }
+	    //add the values that in the range to the set from the last node.
 	    addValuesToSet(low, high, n, rangeSet);
 	   
 	    return rangeSet.toArray();
@@ -96,6 +106,7 @@ public class LeapList {
 	 */
 	private LeapNode addValuesToSet(long low, long high, LeapNode n,
 			ArrayList<Object> rangeSet) {
+		//run over all the keys and add to rangeSet the values that matches the keys in the range.
 		for (int i = 0; i < n.count ; i++)
 		{
 			if (n.data[i].key >= low && n.data[i].key <= high )
