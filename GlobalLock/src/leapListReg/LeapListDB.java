@@ -293,11 +293,6 @@ public class LeapListDB {
                         pa[i].next[i] = newNode[1];
                     }
                 }
-             // Linking completed, mark the new nodes as live.
-                newNode[0].live = true;
-                if (split[k])
-                    newNode[1].live = true;
-
 			}
 	}
 	
@@ -373,8 +368,7 @@ public class LeapListDB {
 		            {   
 		                pa[i].next[i] = n;
 		            }
-					// Node n is fully linked to the list, set it as live.
-		            n.live = true;
+					// set oldNode[0] trie to null and if there was a merge then also oldNode[1].
 		            if(merge[k])
 		            	oldNode[1].trie=null;
 
@@ -444,7 +438,6 @@ public class LeapListDB {
 	        n.level = oldNode[0].level;    
 	        n.low   = oldNode[0].low;
 	        n.count = oldNode[0].count;
-	        n.live = false;
 
 			// If a merge is required, update the new node's properties. Get the maximum level between both of the old nodes and increase the number of elements and maximum expected key in the new node.
 	        if(merge[i])

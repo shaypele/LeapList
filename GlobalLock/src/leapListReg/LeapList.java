@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class LeapList {
 	static final byte MAX_LEVEL = 10;
 	
-	static final int NODE_SIZE = 60;
+	static final int NODE_SIZE = 300;
 	
 	private LeapNode head;
 

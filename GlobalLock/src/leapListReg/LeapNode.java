@@ -3,7 +3,6 @@ import utils.LeapSet;
 import utils.Trie;
 /*
  * LeapNode class represent the node in the LeapList structure,
- * each node has boolean live that is true if the node is in the list and false otherwise,
  * long low that represent the lowest key that can be in the node,
  * long high that represent the highest key that can be in the node,
  * int count that is the number of key value pairs in the node,
@@ -14,7 +13,6 @@ import utils.Trie;
  */
 
 public class LeapNode {
-	boolean live = true;
 	public long low;
 	public long high;
 	public int count;

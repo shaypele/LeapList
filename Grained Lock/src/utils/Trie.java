@@ -160,7 +160,6 @@ public class Trie {
 		
 		if (curr.child[index].val == 0)
 			return -1;
-		long end = System.nanoTime();
 		
 		return (short) (curr.child[index].val - 1);
 		}else{
