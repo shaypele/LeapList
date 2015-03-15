@@ -1,0 +1,31 @@
+How to run Java implementation :
+
+Implementation in Java :
+
+a. GlobalLock - Global lock implementation.
+b. Grained Lock -  Lazy Fine Grained Locking implementation.
+c. Stm - Software transaction implementation that use Deuce Stm.
+d. Improve Stm - Software transaction implementation that use Deuce Stm,our improve implementation of Stm.
+
+In order to run any of the applications :
+1. use the application folder use the command ant compile to compile the application.
+2. only for the Software transactional memory application (c and d) make sure that the jar file deuceAgent-1.3.0 is inside build folder.
+3. only for the Software transactional memory application (c and d) add -javaagent:deuceAgent-1.3.0.jar to the run command java 
+4. For each application the following argument are needed :
+	4.1 <number Of Threads> - number of threads to run parallel.
+	4.2 <max key> 			- the max key that can be in the leap lists. 
+	4.3 <key Range> 		- Range size of keys to look for when calling range query. range query will look for key from 'low' to 'low' + rq_size
+	4.4 <seconds>			- The time that the test will run in seconds.
+	4.5 <number of lists>	- number of lists L that will be in the L-LeapList.
+	4.6 <LookUp Proportion> - percentage of the look operation.
+	4.7 <Range Proportion>	- percentage of the range query operation. 
+	4.8 <Insert Proportion> - percentage of Update, the remove percentage will be: 100 - (LookUp percentage + Range Query percentage + Update percentage).
+
+	Example for a run : java utils.Test1 8 100000 1000 10 4 60 30 9
+					The test will run for 10 seconds and with 8 threads. 60% of the operations will be lookup operations, 30% of the operations will be range query operations in the size of 1000 keys. 
+					9% of the operations will be update and 1% of the operations will be remove. keys will be generated randomly from 0 to 100000,there will be 4 lists in the database and each will start with an initial set of 100000 keys
+					
+	Example for Software transactional memory run :
+	java -javaagent:deuceAgent-1.3.0.jar utils.Test1 8 100000 1000 10 4 60 30 9
+					The test will run for 10 seconds and with 8 threads. 60% of the operations will be lookup operations, 30% of the operations will be range query operations in the size of 1000 keys. 
+					9% of the operations will be update and 1% of the operations will be remove. keys will be generated randomly from 0 to 100000,there will be 4 lists in the database and each will start with an initial set of 100000 keys
