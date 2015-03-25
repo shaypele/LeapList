@@ -7,14 +7,6 @@ public class Trie {
     final int LAST_2_DIGITS_MASK = 0xff;
 	public int nodeNum = 1;
 	
-	public static boolean USE_TRIE = true;
-	
-	public static long counter1 = 0;
-	public static long sum1 = 0;
-	
-	public static long counter2 = 0;
-	public static long sum2 = 0;
-	
 	private TrieMetadata meta;
 	private TrieVal head;
 	
@@ -29,15 +21,11 @@ public class Trie {
 	} 
 	
 	public Trie (long key, short value){
-		if (USE_TRIE){
-			createOneNodeTrie( key,  value);
-		}
+		
+		createOneNodeTrie( key,  value);
 	}
 	
 	public Trie (LeapSet[] data ,int size){
-		
-		if (USE_TRIE) {
-
 		short counter = 1;
 		
 		if ( size == 0 ){
@@ -108,8 +96,6 @@ public class Trie {
 			}
 		}
 		
-		
-		}
 	}
 	
 
@@ -125,20 +111,14 @@ public class Trie {
 	}
 	
 	public short trieFindVal (long key){
-		if (USE_TRIE){
-
 		int shiftDigits = (TRIE_KEY_MAX_DIGITS - meta.prefix_length);
 		int index;
 		TrieVal curr = head;
 		
 		if (head == null)
 			return -1;
-		int shiftBy = (shiftDigits << 2);
-		// shift by 64 will be interpreted as shift by 0.
-		if (shiftBy == 64){
-			shiftBy --;
-		}
-		if ((key >> shiftBy ) != meta.prefix)
+		
+		if ((key >> (shiftDigits << 2)) != meta.prefix)
 			return -1;
 		
 		if (shiftDigits % 2 == 0){
@@ -162,9 +142,6 @@ public class Trie {
 			return -1;
 		
 		return (short) (curr.child[index].val - 1);
-		}else{
-			return -1;
-		}
 	}
 
 	private int recTrieNodesNum(TrieVal curr, byte curLevel){
@@ -184,7 +161,6 @@ public class Trie {
 	}
 	
 	public int trieNodesNum(){
-		if (USE_TRIE) {
 		if (head == null)
 			return 0;
 		
@@ -200,9 +176,6 @@ public class Trie {
 		}
 		sum  = sum + 1;
 		return sum;
-		}else{
-			return -1;
-		}
 	}
 
 }
