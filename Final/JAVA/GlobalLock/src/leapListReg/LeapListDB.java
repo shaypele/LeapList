@@ -7,6 +7,24 @@ import java.util.concurrent.locks.ReentrantLock;
  * LeapListDB class represent the L LeapList data structure and it has an array of LeapLists.
  */
 
+ 
+/* 
+
+Created By:
+
+Yossef Yakobi - yossi_ya@yahoo.com
+Shay Peled - shaypele@gmail.com
+David Meriin - meriind@yahoo.com
+
+Parameter recommended settings :
+
+ 1. Use trie only in cases where the data structure is used for lookup or range query only ( or a very small percentage of modification ) .
+ 2. Maximum node size of 100 elements is recommended.
+ 3. Keep in mind that a big key range will affect performance.
+
+
+*/
+ 
 public class LeapListDB {
 	static  int MAX_ROW;
 	public LeapList[] LeapLists;

@@ -20,6 +20,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+ 
+/* 
+
+Created By:
+
+Yossef Yakobi - yossi_ya@yahoo.com
+Shay Peled - shaypele@gmail.com
+David Meriin - meriind@yahoo.com
+
+Parameter recommended settings :
+
+ 1. Use trie only in cases where the data structure is used for lookup or range query only ( or a very small percentage of modification ) .
+ 2. Maximum node size of 100 elements is recommended.
+ 3. Keep in mind that a big key range will affect performance.
+
+
+*/
+ 
 #define __SET_IMPLEMENTATION__
 
 #include <unistd.h>
